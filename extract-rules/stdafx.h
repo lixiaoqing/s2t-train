@@ -29,4 +29,6 @@
 
 using namespace std;
 
+const int MAX_PHRASE_LEN = 7;
+
 #endif

@@ -75,7 +75,7 @@ void SyntaxTree::build_tree_from_str(const string &line_of_tree)
 				cur_node->src_span = make_pair(word_index,word_index);
 				cur_node->tgt_span = src_idx_to_tgt_span->at(word_index);
 				cur_node->type = 0;
-				words.push_back(toks[i]);
+				word_nodes.push_back(cur_node);
 				word_index++;
 			}
 		}
@@ -130,7 +130,7 @@ void SyntaxTree::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 				continue;
 			for (int src_idx : tgt_idx_to_src_idx->at(tgt_idx))
 			{
-				if (src_idx < node->src_span.first || src_idx > node->src_span.second)
+				if (src_idx < node->src_span.first || src_idx > node->src_span.second) 									   // 目标语言单词对到了src_span外面
 				{
 					type = 2;
 					goto end;

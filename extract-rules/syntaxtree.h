@@ -16,7 +16,7 @@ struct SyntaxNode
 	string label;                                    // 该节点的句法标签或者词
 	SyntaxNode* father;
 	vector<SyntaxNode*> children;
-	pair<int,int> src_span;                          // 该节点对应的源端span
+	pair<int,int> src_span;                          // 该节点对应的源端span,用首位两个单词的位置表示
 	pair<int,int> tgt_span;                          // 该节点对应的目标端span
 	int type;                                        // 节点类型，0：单词节点，1：边界节点，2：非边界节点
 	vector<Rule> rules;								 // 该节点能抽取的所有规则
@@ -53,7 +53,7 @@ class SyntaxTree
 
 	public:
 		SyntaxNode* root;
-		vector<string> words;
+		vector<SyntaxNode*> word_nodes;
 		vector<pair<int,int> > *src_idx_to_tgt_span;          				// 记录每个源语言单词对应的目标端span
 		vector<vector<int> > *tgt_idx_to_src_idx;           			    // 记录每个目标语言单词对应的源端单词位置
 		vector<vector<SyntaxNode*> > tgt_span_lbound_to_frontier_nodes;     // 将tgt_span左边界相同的边界节点放到一起，处理目标语言未对齐的单词用
