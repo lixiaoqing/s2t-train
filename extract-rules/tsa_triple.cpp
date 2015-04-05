@@ -30,20 +30,26 @@ void TSATriple::load_alignment(const string &line_align)
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 抽取当前子树包含的最小规则
+ 2. 入口参数: 当前子树的根节点
+ 3. 出口参数: 无
+ 4. 算法简介: 先序遍历当前子树，抽取每个每个节点的最小规则
+************************************************************************************* */
 void TSATriple::extract_GHKM_rules(const SyntaxNode* node)
 {
-	if (node->type == 1)
+	if (node->type == 1) 																// 当前节点为边界节点
 	{
 		string src_tree_frag = node->label+"( ";
-		vector<int> tgt_word_status(tgt_words.size(),-1);                        // 记录每个目标端单词的状态，i表示被源端第i个变量替换，-1表示没被替换
+		vector<int> tgt_word_status(tgt_words.size(),-1);                               // 记录每个目标端单词的状态，i表示被源端第i个变量替换，-1表示没被替换
 		int variable_num = -1;
-		for (const auto child : node->children)
+		for (const auto child : node->children) 										// 对当前节点的每个孩子节点进行扩展，直到遇到边界节点或单词节点为止
 		{
 			find_frontier_frag(child,src_tree_frag,tgt_word_status,variable_num);
 		}
 		src_tree_frag += ")";
 		cout<<src_tree_frag<<" ||| ";
-		int tgt_idx=node->tgt_span.first;
+		int tgt_idx=node->tgt_span.first; 												// 遍历当前节点tgt_span的每个单词，根据tgt_word_status生成规则目标端
 		while (tgt_idx<=node->tgt_span.second)
 		{
 			if (tgt_word_status.at(tgt_idx) == -1)
@@ -57,7 +63,7 @@ void TSATriple::extract_GHKM_rules(const SyntaxNode* node)
 				cout<<"x"+to_string(variable_num)+" ";
 				while(tgt_idx<tgt_words.size() && tgt_word_status.at(tgt_idx) == variable_num)
 				{
-					tgt_idx++;
+					tgt_idx++; 															// 这些单词被同一个变量替换
 				}
 			}
 		}
@@ -69,22 +75,28 @@ void TSATriple::extract_GHKM_rules(const SyntaxNode* node)
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 寻找当前节点的最小规则片段，并更新目标端单词状态
+ 2. 入口参数: 当前子树的根节点
+ 3. 出口参数: 源端规则片段，目标端单词状态，变量个数
+ 4. 算法简介: 如果当前节点为单词节点或者边界节点，则停止扩展，否则对子树进行先序遍历
+************************************************************************************* */
 void TSATriple::find_frontier_frag(const SyntaxNode* node,string &src_tree_frag,vector<int> &tgt_word_status,int &variable_num)
 {
-	if (node->type == 0)                    //单词节点
+	if (node->type == 0) 																//单词节点
 	{
 		src_tree_frag += "( " + node->label + " ) ";
 	}
-	if (node->type == 1)                    //边界节点
+	if (node->type == 1) 											                    //边界节点
 	{
 		variable_num++;
 		src_tree_frag += node->label  + ":x" + to_string(variable_num) + " ";
 		for (int tgt_idx=node->tgt_span.first;tgt_idx<=node->tgt_span.second;tgt_idx++)
 		{
-			tgt_word_status.at(tgt_idx) = variable_num;
+			tgt_word_status.at(tgt_idx) = variable_num; 								//根据当前节点的tgt_span更新目标端单词的状态
 		}
 	}
-	if (node->type == 2)                    //非边界节点
+	if (node->type == 2)                 											    //非边界节点
 	{
 		src_tree_frag += "( " + node->label;
 		for (const auto child : node->children)

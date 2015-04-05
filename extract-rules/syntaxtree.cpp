@@ -17,6 +17,12 @@ SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,
 	cout<<endl;
 }
 
+/**************************************************************************************
+ 1. 函数功能: 将字符串解析成句法树
+ 2. 入口参数: 一句话的句法分析结果，Berkeley Parser格式
+ 3. 出口参数: 无
+ 4. 算法简介: 见注释
+************************************************************************************* */
 void SyntaxTree::build_tree_from_str(const string &line_of_tree)
 {
 	vector<string> toks = Split(line_of_tree);
@@ -74,20 +80,29 @@ void SyntaxTree::build_tree_from_str(const string &line_of_tree)
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 检查以当前子树中的每个节点是否为边界节点
+ 2. 入口参数: 当前子树的根节点
+ 3. 出口参数: 无
+ 4. 算法简介: 1) 后序遍历当前子树
+ 			  2) 根据子节点的src_span和tgt_span计算当前节点的src_span和tgt_span
+			  3) 检查tgt_span中的每个词是否都对齐到src_span中，从而确定当前节点是否为
+			     边界节点
+************************************************************************************* */
 void SyntaxTree::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 {
-	if (node->children.empty() )    // 单词节点
+	if (node->children.empty() )                                                                                           // 单词节点
 		return;
 	for (const auto child : node->children)
 	{
 		check_frontier_for_nodes_in_subtree(child);
 	}
-	node->src_span = make_pair(node->children.front()->src_span.first,node->children.back()->src_span.second);
-	int lbound = node->children.front()->tgt_span.first;
+	node->src_span = make_pair(node->children.front()->src_span.first,node->children.back()->src_span.second);            // 更新src_span
+	int lbound = node->children.front()->tgt_span.first;                 												  // 遍历子节点，更新tgt_span
 	int rbound = node->children.front()->tgt_span.second;
 	for (const auto child : node->children)
 	{
-		if (child->tgt_span.first == -1)                // 该孩子节点对空了
+		if (child->tgt_span.first == -1)                                                                                   // 该孩子节点对空了
 			continue;
 		if (lbound == -1 || lbound > child->tgt_span.first)
 		{
@@ -100,7 +115,7 @@ void SyntaxTree::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 	}
 	node->tgt_span = make_pair(lbound,rbound);
 
-	int type = 1;
+	int type = 1;           																								// 检查节点是否为边界节点
 	if (lbound == -1)
 	{
 		type = 2;
