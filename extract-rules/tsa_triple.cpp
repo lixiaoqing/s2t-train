@@ -6,6 +6,8 @@ TSATriple::TSATriple(const string &line_tree,const string &line_str,const string
 	src_tree = new SyntaxTree(line_tree,&src_idx_to_tgt_span,&tgt_idx_to_src_idx);
 	tgt_words = Split(line_str);
 	extract_GHKM_rules(src_tree->root);
+	attach_unaligned_words();
+	src_tree->dump(src_tree->root);
 }
 
 void TSATriple::load_alignment(const string &line_align)
@@ -36,7 +38,7 @@ void TSATriple::load_alignment(const string &line_align)
  3. 出口参数: 无
  4. 算法简介: 先序遍历当前子树，抽取每个每个节点的最小规则
 ************************************************************************************* */
-void TSATriple::extract_GHKM_rules(const SyntaxNode* node)
+void TSATriple::extract_GHKM_rules(SyntaxNode* node)
 {
 	if (node->type == 1) 																// 当前节点为边界节点
 	{
@@ -48,26 +50,28 @@ void TSATriple::extract_GHKM_rules(const SyntaxNode* node)
 			find_frontier_frag(child,src_tree_frag,tgt_word_status,variable_num);
 		}
 		src_tree_frag += ")";
-		cout<<src_tree_frag<<" ||| ";
+		Rule rule;
+		rule.type = 1;
+		rule.src_side = src_tree_frag;
 		int tgt_idx=node->tgt_span.first; 												// 遍历当前节点tgt_span的每个单词，根据tgt_word_status生成规则目标端
 		while (tgt_idx<=node->tgt_span.second)
 		{
 			if (tgt_word_status.at(tgt_idx) == -1)
 			{
-				cout<<tgt_words.at(tgt_idx)<<" ";
+				rule.tgt_side += tgt_words.at(tgt_idx)+" ";
 				tgt_idx++;
 			}
 			else
 			{
 				variable_num = tgt_word_status.at(tgt_idx);
-				cout<<"x"+to_string(variable_num)+" ";
+				rule.tgt_side += "x"+to_string(variable_num)+" ";
 				while(tgt_idx<tgt_words.size() && tgt_word_status.at(tgt_idx) == variable_num)
 				{
 					tgt_idx++; 															// 这些单词被同一个变量替换
 				}
 			}
 		}
-		cout<<endl;
+		node->rules.push_back(rule);
 	}
 	for (const auto child : node->children)
 	{
@@ -104,6 +108,63 @@ void TSATriple::find_frontier_frag(const SyntaxNode* node,string &src_tree_frag,
 			find_frontier_frag(child,src_tree_frag,tgt_word_status,variable_num);
 		}
 		src_tree_frag +=  ") ";
+	}
+}
+
+/**************************************************************************************
+ 1. 函数功能: 将目标端未对齐的单词向左（右）依附到最小规则上，形成新的规则
+ 2. 入口参数: 无
+ 3. 出口参数: 无
+ 4. 算法简介: 见注释
+************************************************************************************* */
+void TSATriple::attach_unaligned_words()
+{
+	for (int tgt_idx=0;tgt_idx<tgt_words.size();tgt_idx++)
+	{
+		if (tgt_idx_to_src_idx.at(tgt_idx).size() > 0)       						//跳过有对齐的单词
+			continue;
+		int i;
+		for (i=tgt_idx-1;i>=0;i--)                         			    			//向左扫描，直到遇到有对齐的单词
+		{
+			if (tgt_idx_to_src_idx.at(i).size() > 0)
+				break;
+		}
+		if (i>=0) 											 						//左边有单词有对齐
+		{
+			for (auto node : src_tree->tgt_span_rbound_to_frontier_nodes.at(i))     //找到能依附的所有规则
+			{
+				if (node->rules.size()==0)
+				{
+					cout<<node->label<<' '<<node->tgt_span.first<<' '<<node->tgt_span.second<<endl;
+				}
+				Rule rule = node->rules.front();
+				rule.type = 2;
+				for (int j=i+1;j<=tgt_idx;j++)
+				{
+					rule.tgt_side += " " + tgt_words.at(j);
+				}
+				node->rules.push_back(rule);
+			}
+		}
+
+		for (i=tgt_idx+1;i<tgt_words.size();i++)                        			//向右扫描，直到遇到有对齐的单词
+		{
+			if (tgt_idx_to_src_idx.at(i).size() > 0)
+				break;
+		}
+		if (i<tgt_words.size()) 													//右边有单词有对齐
+		{
+			for (auto node : src_tree->tgt_span_lbound_to_frontier_nodes.at(i))     //找到能依附的所有规则
+			{
+				Rule rule = node->rules.front();
+				rule.type = 2;
+				for (int j=i-1;j>=tgt_idx;j--)
+				{
+					rule.tgt_side = tgt_words.at(j) + " " + rule.tgt_side;
+				}
+				node->rules.push_back(rule);
+			}
+		}
 	}
 }
 

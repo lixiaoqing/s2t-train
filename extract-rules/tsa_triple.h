@@ -12,11 +12,12 @@ class TSATriple
 		{
 			delete src_tree;
 		}
-		void extract_GHKM_rules(const SyntaxNode* node);
 
 	private:
 		void load_alignment(const string &align_line);
+		void extract_GHKM_rules(SyntaxNode* node);
 		void find_frontier_frag(const SyntaxNode* node,string &src_tree_frag,vector<int> &tgt_word_status,int &variable_num);
+		void attach_unaligned_words();
 
 	private:
 		SyntaxTree *src_tree;

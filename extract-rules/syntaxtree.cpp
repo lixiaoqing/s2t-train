@@ -4,6 +4,8 @@ SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,
 {
 	src_idx_to_tgt_span = si2ts;
 	tgt_idx_to_src_idx = ti2si;
+	tgt_span_lbound_to_frontier_nodes.resize(1000);     //TODO 长度不安全
+	tgt_span_rbound_to_frontier_nodes.resize(1000);
 	if (line_of_tree.size() > 3)
 	{
 		build_tree_from_str(line_of_tree);
@@ -13,8 +15,8 @@ SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,
 	{
 		root = NULL;
 	}
-	dump(root);
-	cout<<endl;
+	//dump(root);
+	//cout<<endl;
 }
 
 /**************************************************************************************
@@ -138,16 +140,24 @@ void SyntaxTree::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 	}
 end:
 	node->type = type;
+	if (type == 1) 		 // 将目标端左（右）边界相同的边界节点放在一起
+	{
+		tgt_span_lbound_to_frontier_nodes.at(lbound).push_back(node);
+		tgt_span_rbound_to_frontier_nodes.at(rbound).push_back(node);
+	}
 }
 
 void SyntaxTree::dump(SyntaxNode* node)
 {
 	if (node == NULL)
 		return;
-	cout<<" ( "<<node->label<<' '<<node->src_span.first<<':'<<node->src_span.second<<' '<<node->tgt_span.first<<':'<<node->tgt_span.second<<' '<<node->type;
-	//cout<<" ( "<<node->label<<' ';
+	//cout<<" ( "<<node->label<<' '<<node->src_span.first<<':'<<node->src_span.second<<' '<<node->tgt_span.first<<':'<<node->tgt_span.second<<' '<<node->type;
+	for (auto rule : node->rules)
+	{
+		cout<<rule.src_side<<" ||| "<<rule.tgt_side<<" ||| "<<rule.type<<endl;
+	}
 	for (const auto &child : node->children)
 		dump(child);
-	cout<<" ) ";
+	//cout<<" ) ";
 }
 
