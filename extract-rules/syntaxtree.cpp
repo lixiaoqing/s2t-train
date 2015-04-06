@@ -1,7 +1,8 @@
 #include "syntaxtree.h"
 
-SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,vector<vector<int> > *ti2si)
+SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,vector<vector<int> > *ti2si,vector<string> &tws)
 {
+	tgt_words = tws;
 	src_idx_to_tgt_span = si2ts;
 	tgt_idx_to_src_idx = ti2si;
 	tgt_span_lbound_to_frontier_nodes.resize(1000);     //TODO 长度不安全
@@ -151,13 +152,52 @@ void SyntaxTree::dump(SyntaxNode* node)
 {
 	if (node == NULL)
 		return;
-	//cout<<" ( "<<node->label<<' '<<node->src_span.first<<':'<<node->src_span.second<<' '<<node->tgt_span.first<<':'<<node->tgt_span.second<<' '<<node->type;
 	for (auto rule : node->rules)
 	{
-		cout<<rule.src_side<<" ||| "<<rule.tgt_side<<" ||| "<<rule.type<<endl;
+		string src_side_fwd,src_side_bwd;
+		for (int i=0;i<rule.src_tree_frag.size();i++)
+		{
+			if (rule.src_node_status.at(i) == -1)
+			{
+				src_side_fwd += rule.src_tree_frag.at(i)->label + "( ";
+				src_side_bwd = ")"+src_side_bwd;
+			}
+			else if (rule.src_node_status.at(i) == -2)
+			{
+				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label;
+				src_side_bwd = ") "+src_side_bwd;
+			}
+			else if (rule.src_node_status.at(i) == -3)
+			{
+				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label + " ) ";
+			}
+			else
+			{
+				src_side_fwd += "x"+to_string(rule.src_node_status.at(i))+":"+rule.src_tree_frag.at(i)->label+" ";
+			}
+		}
+		string tgt_side;
+		int tgt_idx=rule.tgt_span.first; 												// 遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
+		while (tgt_idx<=rule.tgt_span.second)
+		{
+			if (rule.tgt_word_status.at(tgt_idx) == -1)
+			{
+				tgt_side += tgt_words.at(tgt_idx)+" ";
+				tgt_idx++;
+			}
+			else if (rule.tgt_word_status.at(tgt_idx) >= 0)
+			{
+				int variable_num = rule.tgt_word_status.at(tgt_idx);
+				tgt_side += "x"+to_string(variable_num)+" ";
+				while(tgt_idx<tgt_words.size() && rule.tgt_word_status.at(tgt_idx) == variable_num)
+				{
+					tgt_idx++; 															// 这些单词被同一个变量替换
+				}
+			}
+		}
+		cout<<src_side_fwd+src_side_bwd<<" ||| "<<tgt_side<<" ||| "<<rule.type<<endl;
 	}
 	for (const auto &child : node->children)
 		dump(child);
-	//cout<<" ) ";
 }
 

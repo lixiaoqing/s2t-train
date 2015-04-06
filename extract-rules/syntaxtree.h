@@ -3,11 +3,17 @@
 #include "stdafx.h"
 #include "myutils.h"
 
+struct SyntaxNode;
+
 struct Rule
 {
-	string src_side;
-	string tgt_side;
-	int type;                                         // 规则类型，1为最小规则，2为扩展了未对齐单词的最小规则，3为SMPT规则，4为组合规则
+	vector<SyntaxNode*> src_tree_frag;					//按照先序记录规则源端句法树片段中的节点
+	vector<int> src_node_status;						//记录规则源端每个节点的状态，i表示第i个变量节点，-1表示根节点，-2表示中间节点，-3表示单词节点
+	pair<int,int> tgt_span;								//记录规则目标端的span
+	vector<int> tgt_word_status;						//记录目标端span中每个单词的状态，i表示被源端第i个变量替换，-1表示没被替换，-2表示被跳过的未对齐的词
+	int variable_num;									//规则中变量的个数
+	int type;                                           //规则类型，1为最小规则，2为扩展了未对齐单词的最小规则，3为SMPT规则，4为组合规则
+	int size;                            	            //规则大小，表示规则由几个最小规则组合而成
 };
 
 // 源端句法树节点
@@ -40,7 +46,7 @@ struct SyntaxNode
 class SyntaxTree
 {
 	public:
-		SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,vector<vector<int> > *ti2si);
+		SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,vector<vector<int> > *ti2si,vector<string> &tws);
 		~SyntaxTree()
 		{
 			delete root;
@@ -58,6 +64,7 @@ class SyntaxTree
 		vector<vector<int> > *tgt_idx_to_src_idx;           			    // 记录每个目标语言单词对应的源端单词位置
 		vector<vector<SyntaxNode*> > tgt_span_lbound_to_frontier_nodes;     // 将tgt_span左边界相同的边界节点放到一起，处理目标语言未对齐的单词用
 		vector<vector<SyntaxNode*> > tgt_span_rbound_to_frontier_nodes;     // 将tgt_span右边界相同的边界节点放到一起，处理目标语言未对齐的单词用
+		vector<string> tgt_words;
 };
 
 #endif
