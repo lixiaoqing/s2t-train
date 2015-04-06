@@ -2,51 +2,15 @@
 
 RuleExtractor::RuleExtractor(const string &line_tree,const string &line_str,const string &line_align)
 {
-	load_alignment(line_align);
-	tgt_words = Split(line_str);
-	src_tree = new SyntaxTree(line_tree,&src_idx_to_tgt_span,&tgt_idx_to_src_idx,tgt_words);
-	tgt_sen_len = tgt_words.size();
-}
-
-void RuleExtractor::load_alignment(const string &line_align)
-{
-	src_idx_to_tgt_span.resize(1000,make_pair(-1,-1));  //TODO 句子长度不安全
-	tgt_idx_to_src_span.resize(1000,make_pair(-1,-1));
-	src_idx_to_tgt_idx.resize(1000);
-	tgt_idx_to_src_idx.resize(1000);
-	vector<string> alignments = Split(line_align);
-	for (auto align : alignments)
-	{
-		vector<string> idx_pair = Split(align,"-");
-		int src_idx = stoi(idx_pair.at(0));
-		int tgt_idx = stoi(idx_pair.at(1));
-		if (src_idx_to_tgt_span.at(src_idx).first == -1 || src_idx_to_tgt_span.at(src_idx).first > tgt_idx)
-		{
-			src_idx_to_tgt_span.at(src_idx).first = tgt_idx;
-		}
-		if (src_idx_to_tgt_span.at(src_idx).second == -1 || src_idx_to_tgt_span.at(src_idx).second < tgt_idx)
-		{
-			src_idx_to_tgt_span.at(src_idx).second = tgt_idx;
-		}
-		if (tgt_idx_to_src_span.at(tgt_idx).first == -1 || tgt_idx_to_src_span.at(tgt_idx).first > src_idx)
-		{
-			tgt_idx_to_src_span.at(tgt_idx).first = src_idx;
-		}
-		if (tgt_idx_to_src_span.at(tgt_idx).second == -1 || tgt_idx_to_src_span.at(tgt_idx).second < src_idx)
-		{
-			tgt_idx_to_src_span.at(tgt_idx).second = src_idx;
-		}
-		src_idx_to_tgt_idx.at(src_idx).push_back(tgt_idx);
-		tgt_idx_to_src_idx.at(tgt_idx).push_back(src_idx);
-	}
+	tspair = new TreeStrPair(line_tree,line_str,line_align);
 }
 
 void RuleExtractor::extract_rules()
 {
-	extract_GHKM_rules(src_tree->root);
+	extract_GHKM_rules(tspair->root);
 	attach_unaligned_words();
 	extract_SPMT_rules();
-	src_tree->dump(src_tree->root);
+	tspair->dump_rule(tspair->root);
 }
 
 /**************************************************************************************
@@ -64,7 +28,7 @@ void RuleExtractor::extract_GHKM_rules(SyntaxNode* node)
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-1);
 		rule.tgt_span = node->tgt_span;
-		rule.tgt_word_status.resize(tgt_sen_len,-1);
+		rule.tgt_word_status.resize(tspair->tgt_sen_len,-1);
 		rule.variable_num = 0;
 		for (const auto child : node->children) 										// 对当前节点的每个孩子节点进行扩展，直到遇到边界节点或单词节点为止
 		{
@@ -120,19 +84,19 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
 ************************************************************************************* */
 void RuleExtractor::attach_unaligned_words()
 {
-	for (int tgt_idx=0;tgt_idx<tgt_sen_len;tgt_idx++)
+	for (int tgt_idx=0;tgt_idx<tspair->tgt_sen_len;tgt_idx++)
 	{
-		if (tgt_idx_to_src_idx.at(tgt_idx).size() > 0)       						//跳过有对齐的单词
+		if (tspair->tgt_idx_to_src_idx.at(tgt_idx).size() > 0)       						//跳过有对齐的单词
 			continue;
 		int i;
 		for (i=tgt_idx-1;i>=0;i--)                         			    			//向左扫描，直到遇到有对齐的单词
 		{
-			if (tgt_idx_to_src_idx.at(i).size() > 0)
+			if (tspair->tgt_idx_to_src_idx.at(i).size() > 0)
 				break;
 		}
 		if (i>=0) 											 						//左边有单词有对齐
 		{
-			for (auto node : src_tree->tgt_span_rbound_to_frontier_nodes.at(i))     //找到能依附的所有规则
+			for (auto node : tspair->tgt_span_rbound_to_frontier_nodes.at(i))     //找到能依附的所有规则
 			{
 				assert(node->rules.size()>0);
 				Rule rule = node->rules.front();
@@ -142,14 +106,14 @@ void RuleExtractor::attach_unaligned_words()
 			}
 		}
 
-		for (i=tgt_idx+1;i<tgt_sen_len;i++)                        					//向右扫描，直到遇到有对齐的单词
+		for (i=tgt_idx+1;i<tspair->tgt_sen_len;i++)                        					//向右扫描，直到遇到有对齐的单词
 		{
-			if (tgt_idx_to_src_idx.at(i).size() > 0)
+			if (tspair->tgt_idx_to_src_idx.at(i).size() > 0)
 				break;
 		}
-		if (i<tgt_sen_len) 															//右边有单词有对齐
+		if (i<tspair->tgt_sen_len) 															//右边有单词有对齐
 		{
-			for (auto node : src_tree->tgt_span_lbound_to_frontier_nodes.at(i))     //找到能依附的所有规则
+			for (auto node : tspair->tgt_span_lbound_to_frontier_nodes.at(i))     //找到能依附的所有规则
 			{
 				Rule rule = node->rules.front();
 				rule.type = 2;
@@ -162,9 +126,9 @@ void RuleExtractor::attach_unaligned_words()
 
 void RuleExtractor::extract_SPMT_rules()
 {
-	for (int len=0;len<tgt_sen_len && len<MAX_PHRASE_LEN;len++)				     //遍历目标端所有的短语
+	for (int len=0;len<tspair->tgt_sen_len && len<MAX_PHRASE_LEN;len++)				     //遍历目标端所有的短语
 	{
-		for (int beg=0;beg+len<tgt_sen_len;beg++)
+		for (int beg=0;beg+len<tspair->tgt_sen_len;beg++)
 		{
 			pair<int,int> tgt_span = make_pair(beg,beg+len);
 			pair<int,int> src_span = cal_src_span_for_tgt_span(tgt_span); 	      //计算目标端短语对应的源端span
@@ -174,7 +138,7 @@ void RuleExtractor::extract_SPMT_rules()
 			if (flag == false)
 				continue;
 			//寻找能覆盖源端span的最低句法节点
-			SyntaxNode *node = src_tree->word_nodes.at(src_span.first)->father;   //从源端span最左端单词的词性节点往上找
+			SyntaxNode *node = tspair->word_nodes.at(src_span.first)->father;   //从源端span最左端单词的词性节点往上找
 			while (node->src_span.second < src_span.second) 					  //当前节点无法覆盖源端span右边界（左边界肯定能被覆盖）
 			{
 				node = node->father;
@@ -187,7 +151,7 @@ void RuleExtractor::extract_SPMT_rules()
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-1);
 		rule.tgt_span = tgt_span;
-		rule.tgt_word_status.resize(tgt_sen_len,-1);
+		rule.tgt_word_status.resize(tspair->tgt_sen_len,-1);
 		rule.variable_num = 0;
 			for (const auto child : node->children) 							 // 对当前节点的每个孩子节点进行扩展，直到遇到源端span以外的边界节点或单词节点
 			{
@@ -258,15 +222,15 @@ pair<int,int> RuleExtractor::cal_src_span_for_tgt_span(pair<int,int> tgt_span)
 	int src_rbound = -1;
 	for (int i=tgt_span.first;i<=tgt_span.second;i++)
 	{
-		if (tgt_idx_to_src_span.at(i).first == -1)
+		if (tspair->tgt_idx_to_src_span.at(i).first == -1)
 			continue;
-		if (src_lbound == -1 || src_lbound > tgt_idx_to_src_span.at(i).first)
+		if (src_lbound == -1 || src_lbound > tspair->tgt_idx_to_src_span.at(i).first)
 		{
-			src_lbound = tgt_idx_to_src_span.at(i).first;
+			src_lbound = tspair->tgt_idx_to_src_span.at(i).first;
 		}
-		if (src_rbound == -1 || src_rbound < tgt_idx_to_src_span.at(i).second)
+		if (src_rbound == -1 || src_rbound < tspair->tgt_idx_to_src_span.at(i).second)
 		{
-			src_rbound = tgt_idx_to_src_span.at(i).second;
+			src_rbound = tspair->tgt_idx_to_src_span.at(i).second;
 		}
 	}
 	return make_pair(src_lbound,src_rbound);
@@ -276,7 +240,7 @@ bool RuleExtractor::check_alignment_for_src_span(pair<int,int> src_span,pair<int
 {
 	for (int j=src_span.first;j<=src_span.second;j++)
 	{
-		for (int tgt_idx : src_idx_to_tgt_idx.at(j))
+		for (int tgt_idx : tspair->src_idx_to_tgt_idx.at(j))
 		{
 			if (tgt_idx < tgt_span.first || tgt_idx > tgt_span.second)
 				return false;

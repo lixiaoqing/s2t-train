@@ -1,15 +1,15 @@
-#include "syntaxtree.h"
+#include "tree_str_pair.h"
 
-SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,vector<vector<int> > *ti2si,vector<string> &tws)
+TreeStrPair::TreeStrPair(const string &line_tree,const string &line_str,const string &line_align)
 {
-	tgt_words = tws;
-	src_idx_to_tgt_span = si2ts;
-	tgt_idx_to_src_idx = ti2si;
+	load_alignment(line_align);
+	tgt_words = Split(line_str);
+	tgt_sen_len = tgt_words.size();
 	tgt_span_lbound_to_frontier_nodes.resize(1000);     //TODO 长度不安全
 	tgt_span_rbound_to_frontier_nodes.resize(1000);
-	if (line_of_tree.size() > 3)
+	if (line_tree.size() > 3)
 	{
-		build_tree_from_str(line_of_tree);
+		build_tree_from_str(line_tree);
 		check_frontier_for_nodes_in_subtree(root);
 	}
 	else
@@ -20,15 +20,48 @@ SyntaxTree::SyntaxTree(const string &line_of_tree,vector<pair<int,int> > *si2ts,
 	//cout<<endl;
 }
 
+void TreeStrPair::load_alignment(const string &line_align)
+{
+	src_idx_to_tgt_span.resize(1000,make_pair(-1,-1));  //TODO 句子长度不安全
+	tgt_idx_to_src_span.resize(1000,make_pair(-1,-1));
+	src_idx_to_tgt_idx.resize(1000);
+	tgt_idx_to_src_idx.resize(1000);
+	vector<string> alignments = Split(line_align);
+	for (auto align : alignments)
+	{
+		vector<string> idx_pair = Split(align,"-");
+		int src_idx = stoi(idx_pair.at(0));
+		int tgt_idx = stoi(idx_pair.at(1));
+		if (src_idx_to_tgt_span.at(src_idx).first == -1 || src_idx_to_tgt_span.at(src_idx).first > tgt_idx)
+		{
+			src_idx_to_tgt_span.at(src_idx).first = tgt_idx;
+		}
+		if (src_idx_to_tgt_span.at(src_idx).second == -1 || src_idx_to_tgt_span.at(src_idx).second < tgt_idx)
+		{
+			src_idx_to_tgt_span.at(src_idx).second = tgt_idx;
+		}
+		if (tgt_idx_to_src_span.at(tgt_idx).first == -1 || tgt_idx_to_src_span.at(tgt_idx).first > src_idx)
+		{
+			tgt_idx_to_src_span.at(tgt_idx).first = src_idx;
+		}
+		if (tgt_idx_to_src_span.at(tgt_idx).second == -1 || tgt_idx_to_src_span.at(tgt_idx).second < src_idx)
+		{
+			tgt_idx_to_src_span.at(tgt_idx).second = src_idx;
+		}
+		src_idx_to_tgt_idx.at(src_idx).push_back(tgt_idx);
+		tgt_idx_to_src_idx.at(tgt_idx).push_back(src_idx);
+	}
+}
+
 /**************************************************************************************
  1. 函数功能: 将字符串解析成句法树
  2. 入口参数: 一句话的句法分析结果，Berkeley Parser格式
  3. 出口参数: 无
  4. 算法简介: 见注释
 ************************************************************************************* */
-void SyntaxTree::build_tree_from_str(const string &line_of_tree)
+void TreeStrPair::build_tree_from_str(const string &line_tree)
 {
-	vector<string> toks = Split(line_of_tree);
+	vector<string> toks = Split(line_tree);
 	SyntaxNode* cur_node;
 	SyntaxNode* pre_node;
 	int word_index = 0;
@@ -74,7 +107,7 @@ void SyntaxTree::build_tree_from_str(const string &line_of_tree)
 			if(toks[i+1]==")")
 			{
 				cur_node->src_span = make_pair(word_index,word_index);
-				cur_node->tgt_span = src_idx_to_tgt_span->at(word_index);
+				cur_node->tgt_span = src_idx_to_tgt_span.at(word_index);
 				cur_node->type = 0;
 				word_nodes.push_back(cur_node);
 				word_index++;
@@ -92,7 +125,7 @@ void SyntaxTree::build_tree_from_str(const string &line_of_tree)
 			  3) 检查tgt_span中的每个词是否都对齐到src_span中，从而确定当前节点是否为
 			     边界节点
 ************************************************************************************* */
-void SyntaxTree::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
+void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 {
 	if (node->children.empty() )                                                                                           // 单词节点
 		return;
@@ -127,9 +160,9 @@ void SyntaxTree::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 	{
 		for (int tgt_idx=lbound; tgt_idx<=rbound; tgt_idx++)
 		{
-			if (tgt_idx_to_src_idx->at(tgt_idx).size() <= 1)
+			if (tgt_idx_to_src_idx.at(tgt_idx).size() <= 1)
 				continue;
-			for (int src_idx : tgt_idx_to_src_idx->at(tgt_idx))
+			for (int src_idx : tgt_idx_to_src_idx.at(tgt_idx))
 			{
 				if (src_idx < node->src_span.first || src_idx > node->src_span.second) 									   // 目标语言单词对到了src_span外面
 				{
@@ -148,7 +181,7 @@ end:
 	}
 }
 
-void SyntaxTree::dump(SyntaxNode* node)
+void TreeStrPair::dump_rule(SyntaxNode* node)
 {
 	if (node == NULL)
 		return;
@@ -157,27 +190,27 @@ void SyntaxTree::dump(SyntaxNode* node)
 		string src_side_fwd,src_side_bwd;
 		for (int i=0;i<rule.src_tree_frag.size();i++)
 		{
-			if (rule.src_node_status.at(i) == -1)
+			if (rule.src_node_status.at(i) == -1)							//规则源端根节点
 			{
 				src_side_fwd += rule.src_tree_frag.at(i)->label + "( ";
 				src_side_bwd = ")"+src_side_bwd;
 			}
-			else if (rule.src_node_status.at(i) == -2)
+			else if (rule.src_node_status.at(i) == -2)						//规则源端内部节点
 			{
-				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label;
+				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label+" ";
 				src_side_bwd = ") "+src_side_bwd;
 			}
-			else if (rule.src_node_status.at(i) == -3)
+			else if (rule.src_node_status.at(i) == -3)						//规则源端单词节点
 			{
 				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label + " ) ";
 			}
-			else
+			else 															//规则源端变量节点
 			{
 				src_side_fwd += "x"+to_string(rule.src_node_status.at(i))+":"+rule.src_tree_frag.at(i)->label+" ";
 			}
 		}
 		string tgt_side;
-		int tgt_idx=rule.tgt_span.first; 												// 遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
+		int tgt_idx=rule.tgt_span.first; 									// 遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
 		while (tgt_idx<=rule.tgt_span.second)
 		{
 			if (rule.tgt_word_status.at(tgt_idx) == -1)
@@ -191,7 +224,7 @@ void SyntaxTree::dump(SyntaxNode* node)
 				tgt_side += "x"+to_string(variable_num)+" ";
 				while(tgt_idx<tgt_words.size() && rule.tgt_word_status.at(tgt_idx) == variable_num)
 				{
-					tgt_idx++; 															// 这些单词被同一个变量替换
+					tgt_idx++; 												// 这些单词被同一个变量替换
 				}
 			}
 		}
