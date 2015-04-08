@@ -8,7 +8,7 @@ RuleExtractor::RuleExtractor(const string &line_tree,const string &line_str,cons
 void RuleExtractor::extract_rules()
 {
 	extract_GHKM_rules(tspair->root);
-	//extract_SPMT_rules();
+	extract_SPMT_rules();
 	tspair->dump_rule(tspair->root);
 }
 
