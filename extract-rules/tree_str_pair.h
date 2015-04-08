@@ -8,13 +8,21 @@ struct SyntaxNode;
 
 struct Rule
 {
-	vector<SyntaxNode*> src_tree_frag;				//按照先序记录规则源端句法树片段中的节点
-	vector<int> src_node_status;					//记录规则源端每个节点的状态，i表示第i个变量节点，-1表示根节点，-2表示中间节点，-3表示单词节点
+	vector<SyntaxNode*> src_tree_frag;				//按照先序顺序记录规则源端句法树片段中的节点
+	vector<int> src_node_status;					//记录规则源端每个节点的状态，i表示第i个变量节点，-1表示根节点，-2表示内部节点，-3表示单词节点
+	vector<pair<int,int> > tgt_spans_for_src_node;  //记录规则源端每个节点在目标段的span
 	pair<int,int> tgt_span;							//记录规则目标端的span
-	vector<int> tgt_word_status;					//记录目标端span中每个单词的状态，i表示被源端第i个变量替换，-1表示没被替换，-2表示被跳过的未对齐的词
+	vector<int> tgt_word_status;					//记录目标端span中每个单词的状态，i表示被源端第i个变量替换，-1表示没被替换，-2表示被跳过的未对齐的词(-2状态用于SPMT规则)
 	int variable_num;								//规则中变量的个数
 	int type;                                       //规则类型，1为最小规则，2为扩展了未对齐单词的最小规则，3为SMPT规则，4为组合规则
 	int size;                            	        //规则大小，表示规则由几个最小规则组合而成
+	Rule ()
+	{
+		tgt_span = make_pair(-1,-1);
+		variable_num = 0;
+		type = 1;
+		size = 1;
+	}
 };
 
 // 源端句法树节点

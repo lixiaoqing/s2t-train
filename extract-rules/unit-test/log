@@ -1,0 +1,27 @@
+NP( x0:NP x1:VP ) ||| x2 的 几个 x1  ||| 1
+NP( ( NP ( NNS  astronauts ( VP ( VBG  coming ( PP ( IN  from ( NP ( NNP  France ) ) ) ) ) ) ) ) ) ||| 来自 法国 的 几个 宇航 员  ||| 3
+NP( x0:NNS ) ||| x1  ||| 1
+NP( x0:NNS ) ||| 的 几个 x1  ||| 2
+NP( x0:NNS ) ||| 几个 x1  ||| 2
+NNS(  astronauts ) ||| 宇航 员  ||| 1
+NNS(  astronauts ) ||| 的 几个 宇航 员  ||| 2
+NNS(  astronauts ) ||| 几个 宇航 员  ||| 2
+NNS(  astronauts ) ||| 宇航 员  ||| 3
+NNS(  astronauts ) ||| 几个 宇航 员  ||| 3
+NNS(  astronauts ) ||| 的 几个 宇航 员  ||| 3
+VP( ( VBG  coming ( PP ( IN  from x0:NP ) ) ) ) ||| 来自 x1  ||| 1
+VP( ( VBG  coming ( PP ( IN  from x0:NP ) ) ) ) ||| 来自 x1 的  ||| 2
+VP( ( VBG  coming ( PP ( IN  from x0:NP ) ) ) ) ||| 来自 x1 的 几个  ||| 2
+VP( ( VBG  coming ( PP ( IN  from x0:NP ) ) ) ) ||| 来自 x1  ||| 3
+VP( ( VBG  coming ( PP ( IN  from ( NP ( NNP  France ) ) ) ) ) ) ||| 来自 法国  ||| 3
+VP( ( VBG  coming ( PP ( IN  from ( NP ( NNP  France ) ) ) ) ) ) ||| 来自 法国 的  ||| 3
+VP( ( VBG  coming ( PP ( IN  from ( NP ( NNP  France ) ) ) ) ) ) ||| 来自 法国 的 几个  ||| 3
+NP( x0:NNP ) ||| x1  ||| 1
+NP( x0:NNP ) ||| x1 的  ||| 2
+NP( x0:NNP ) ||| x1 的 几个  ||| 2
+NNP(  France ) ||| 法国  ||| 1
+NNP(  France ) ||| 法国 的  ||| 2
+NNP(  France ) ||| 法国 的 几个  ||| 2
+NNP(  France ) ||| 法国  ||| 3
+NNP(  France ) ||| 法国 的  ||| 3
+NNP(  France ) ||| 法国 的 几个  ||| 3

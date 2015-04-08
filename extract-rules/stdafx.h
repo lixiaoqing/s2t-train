@@ -30,5 +30,6 @@
 using namespace std;
 
 const int MAX_PHRASE_LEN = 7;
+const int MAX_RULE_SIZE = 4;			// 规则最多有几个更小的规则组成
 
 #endif

@@ -16,8 +16,6 @@ TreeStrPair::TreeStrPair(const string &line_tree,const string &line_str,const st
 	{
 		root = NULL;
 	}
-	//dump(root);
-	//cout<<endl;
 }
 
 void TreeStrPair::load_alignment(const string &line_align)
@@ -187,30 +185,36 @@ void TreeStrPair::dump_rule(SyntaxNode* node)
 		return;
 	for (auto rule : node->rules)
 	{
-		string src_side_fwd,src_side_bwd;
-		for (int i=0;i<rule.src_tree_frag.size();i++)
+		string src_side = rule.src_tree_frag.at(0)->label + " ";
+		for (int i=1;i<rule.src_tree_frag.size();i++)
 		{
-			if (rule.src_node_status.at(i) == -1)							//规则源端根节点
+			if (rule.src_tree_frag.at(i-1) != rule.src_tree_frag.at(i)->father)			//前一个节点不是是当前节点的父节点
 			{
-				src_side_fwd += rule.src_tree_frag.at(i)->label + "( ";
-				src_side_bwd = ")"+src_side_bwd;
+				SyntaxNode* node = rule.src_tree_frag.at(i-1);
+				while(node != rule.src_tree_frag.at(i)->father)				//沿着前一个节点往上走，直到走到当前节点的父节点
+				{
+					src_side += ") ";
+					node = node->father;
+				}
 			}
-			else if (rule.src_node_status.at(i) == -2)						//规则源端内部节点
+			src_side += "( ";		
+			if (rule.src_node_status.at(i) < 0)								//规则源端内部节点或者单词节点
 			{
-				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label+" ";
-				src_side_bwd = ") "+src_side_bwd;
-			}
-			else if (rule.src_node_status.at(i) == -3)						//规则源端单词节点
-			{
-				src_side_fwd += "( " + rule.src_tree_frag.at(i)->label + " ) ";
+				src_side += rule.src_tree_frag.at(i)->label + " ";
 			}
 			else 															//规则源端变量节点
 			{
-				src_side_fwd += "x"+to_string(rule.src_node_status.at(i))+":"+rule.src_tree_frag.at(i)->label+" ";
+				src_side += "x"+to_string(rule.src_node_status.at(i))+":"+rule.src_tree_frag.at(i)->label+" ";
 			}
 		}
+		SyntaxNode* node = rule.src_tree_frag.back();
+		while (node != rule.src_tree_frag.front())							//补齐剩下的右括号
+		{
+			src_side += ") ";
+			node = node->father;
+		}
 		string tgt_side;
-		int tgt_idx=rule.tgt_span.first; 									// 遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
+		int tgt_idx=rule.tgt_span.first; 									//遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
 		while (tgt_idx<=rule.tgt_span.second)
 		{
 			if (rule.tgt_word_status.at(tgt_idx) == -1)
@@ -228,9 +232,9 @@ void TreeStrPair::dump_rule(SyntaxNode* node)
 				}
 			}
 		}
-		cout<<src_side_fwd+src_side_bwd<<" ||| "<<tgt_side<<" ||| "<<rule.type<<endl;
+		cout<<src_side<<" ||| "<<tgt_side<<" ||| "<<rule.type<<endl;
 	}
 	for (const auto &child : node->children)
-		dump(child);
+		dump_rule(child);
 }
 

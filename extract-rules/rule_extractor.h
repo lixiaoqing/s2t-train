@@ -22,6 +22,8 @@ class RuleExtractor
 		bool find_syntax_phrase_frag(SyntaxNode* node,Rule &rule,pair<int,int> src_span);
 		pair<int,int> cal_src_span_for_tgt_span(pair<int,int> tgt_span);
 		bool check_alignment_for_src_span(pair<int,int> src_span,pair<int,int> tgt_span);
+		void extract_compose_rules(SyntaxNode* node);
+		void expand_rule(Rule &rule,vector<Rule>* composed_rules);
 
 	private:
 		TreeStrPair *tspair;
