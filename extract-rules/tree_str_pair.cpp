@@ -5,8 +5,6 @@ TreeStrPair::TreeStrPair(const string &line_tree,const string &line_str,const st
 	load_alignment(line_align);
 	tgt_words = Split(line_str);
 	tgt_sen_len = tgt_words.size();
-	tgt_span_lbound_to_frontier_nodes.resize(1000);     //TODO 长度不安全
-	tgt_span_rbound_to_frontier_nodes.resize(1000);
 	if (line_tree.size() > 3)
 	{
 		build_tree_from_str(line_tree);
@@ -172,11 +170,6 @@ void TreeStrPair::check_frontier_for_nodes_in_subtree(SyntaxNode* node)
 	}
 end:
 	node->type = type;
-	if (type == 1) 		 // 将目标端左（右）边界相同的边界节点放在一起
-	{
-		tgt_span_lbound_to_frontier_nodes.at(lbound).push_back(node);
-		tgt_span_rbound_to_frontier_nodes.at(rbound).push_back(node);
-	}
 }
 
 void TreeStrPair::dump_rule(SyntaxNode* node)
@@ -214,8 +207,8 @@ void TreeStrPair::dump_rule(SyntaxNode* node)
 			node = node->father;
 		}
 		string tgt_side;
-		int tgt_idx=rule.tgt_span.first; 									//遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
-		while (tgt_idx<=rule.tgt_span.second)
+		int tgt_idx=rule.tgt_spans_for_src_node.front().first; 				//遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
+		while (tgt_idx<=rule.tgt_spans_for_src_node.front().second)
 		{
 			if (rule.tgt_word_status.at(tgt_idx) == -1)
 			{

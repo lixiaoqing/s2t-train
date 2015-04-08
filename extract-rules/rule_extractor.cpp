@@ -8,8 +8,7 @@ RuleExtractor::RuleExtractor(const string &line_tree,const string &line_str,cons
 void RuleExtractor::extract_rules()
 {
 	extract_GHKM_rules(tspair->root);
-	//attach_unaligned_words();
-	extract_SPMT_rules();
+	//extract_SPMT_rules();
 	tspair->dump_rule(tspair->root);
 }
 
@@ -21,20 +20,21 @@ void RuleExtractor::extract_rules()
 ************************************************************************************* */
 void RuleExtractor::extract_GHKM_rules(SyntaxNode* node)
 {
-	if (node->type == 1) 																// 当前节点为边界节点
+	if (node->type == 1) 													// 当前节点为边界节点
 	{
 		Rule rule;
 		rule.type = 1;
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-1);
-		rule.tgt_span = node->tgt_span;
+		rule.tgt_spans_for_src_node.push_back(node->tgt_span);
 		rule.tgt_word_status.resize(tspair->tgt_sen_len,-1);
 		rule.variable_num = 0;
-		for (const auto child : node->children) 										// 对当前节点的每个孩子节点进行扩展，直到遇到边界节点或单词节点为止
+		for (const auto child : node->children) 							// 对当前节点的每个孩子节点进行扩展，直到遇到边界节点或单词节点为止
 		{
 			find_frontier_frag(child,rule);
 		}
 		node->rules.push_back(rule);
+		attach_unaligned_words(node);
 	}
 	for (const auto child : node->children)
 	{
@@ -54,11 +54,13 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-3);
+		rule.tgt_spans_for_src_node.push_back(node->tgt_span);
 	}
 	else if (node->type == 1)										                    //边界节点
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(rule.variable_num);
+		rule.tgt_spans_for_src_node.push_back(node->tgt_span);
 		for (int tgt_idx=node->tgt_span.first;tgt_idx<=node->tgt_span.second;tgt_idx++)
 		{
 			rule.tgt_word_status.at(tgt_idx) = rule.variable_num;						//根据当前节点的tgt_span更新目标端单词的状态
@@ -69,6 +71,7 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-2);
+		rule.tgt_spans_for_src_node.push_back(make_pair(-1,-1));
 		for (const auto child : node->children)
 		{
 			find_frontier_frag(child,rule);
@@ -82,43 +85,68 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
  3. 出口参数: 无
  4. 算法简介: 见注释
 ************************************************************************************* */
-void RuleExtractor::attach_unaligned_words()
+void RuleExtractor::attach_unaligned_words(SyntaxNode* node)
 {
-	for (int tgt_idx=0;tgt_idx<tspair->tgt_sen_len;tgt_idx++)
+	for (int tgt_idx=0;tgt_idx<tspair->tgt_sen_len;tgt_idx++)									//遍历目标语言句子的所有单词
 	{
-		if (tspair->tgt_idx_to_src_idx.at(tgt_idx).size() > 0)       				//跳过有对齐的单词
+		if (tspair->tgt_idx_to_src_idx.at(tgt_idx).size() > 0)       							//跳过有对齐的单词
 			continue;
 		int i;
-		for (i=tgt_idx-1;i>=0;i--)                         			    			//向左扫描，直到遇到有对齐的单词
+		for (i=tgt_idx-1;i>=0;i--)                         			    						//向左扫描，直到遇到有对齐的单词
 		{
 			if (tspair->tgt_idx_to_src_idx.at(i).size() > 0)
 				break;
 		}
-		if (i>=0) 											 						//左边有单词有对齐
+		if (i>=0) 											 									//左边有单词有对齐
 		{
-			for (auto node : tspair->tgt_span_rbound_to_frontier_nodes.at(i))     	//找到能依附的所有规则
+			for (int j=0;j<node->rules.front().src_tree_frag.size();j++)	    				//遍历最小规则的每个节点，检查能否被依附
 			{
-				assert(node->rules.size()>0);
-				Rule rule = node->rules.front();
-				rule.type = 2;
-				rule.tgt_span.second = tgt_idx;
-				node->rules.push_back(rule);
+				if (node->rules.front().src_tree_frag.at(j)->tgt_span.second == i				//被检查节点的右边界等于i
+					&& node->rules.front().src_tree_frag.at(j)->type == 1)						//被检查节点为边界节点
+				{
+					Rule rule = node->rules.front();
+					rule.type = 2;
+					rule.tgt_spans_for_src_node.at(0).second = tgt_idx;							//更新规则根节点的目标端span
+					rule.tgt_spans_for_src_node.at(j).second = tgt_idx;							//更新变量节点的在目标端的控制范围
+					int variable_idx = node->rules.front().src_node_status.at(j);
+					if (variable_idx >= 0)
+					{
+						for (int k=rule.tgt_spans_for_src_node.at(j).first;k<=rule.tgt_spans_for_src_node.at(j).second;k++)
+						{
+							rule.tgt_word_status.at(k) = variable_idx;
+						}
+					}
+					node->rules.push_back(rule);
+				}
 			}
 		}
 
-		for (i=tgt_idx+1;i<tspair->tgt_sen_len;i++)                        		   	//向右扫描，直到遇到有对齐的单词
+		for (i=tgt_idx+1;i<tspair->tgt_sen_len;i++)                        		   				//向右扫描，直到遇到有对齐的单词
 		{
 			if (tspair->tgt_idx_to_src_idx.at(i).size() > 0)
 				break;
 		}
-		if (i<tspair->tgt_sen_len) 													//右边有单词有对齐
+		if (i < tspair->tgt_sen_len) 															//右边有单词有对齐
 		{
-			for (auto node : tspair->tgt_span_lbound_to_frontier_nodes.at(i))       //找到能依附的所有规则
+			for (int j=0;j<node->rules.front().src_tree_frag.size();j++)	    				//遍历最小规则的每个节点，检查能否被依附
 			{
-				Rule rule = node->rules.front();
-				rule.type = 2;
-				rule.tgt_span.first = tgt_idx;
-				node->rules.push_back(rule);
+				if (node->rules.front().src_tree_frag.at(j)->tgt_span.first == i				//被检查节点的左边界等于i
+					&& node->rules.front().src_tree_frag.at(j)->type == 1)						//被检查节点为边界节点
+				{
+					Rule rule = node->rules.front();
+					rule.type = 2;
+					rule.tgt_spans_for_src_node.at(0).first = tgt_idx;							//更新规则根节点的目标端span
+					rule.tgt_spans_for_src_node.at(j).first = tgt_idx;							//更新变量节点的在目标端的控制范围
+					int variable_idx = node->rules.front().src_node_status.at(j);
+					if (variable_idx >= 0)
+					{
+						for (int k=rule.tgt_spans_for_src_node.at(j).first;k<=rule.tgt_spans_for_src_node.at(j).second;k++)
+						{
+							rule.tgt_word_status.at(k) = variable_idx;
+						}
+					}
+					node->rules.push_back(rule);
+				}
 			}
 		}
 	}
@@ -159,7 +187,7 @@ void RuleExtractor::extract_SPMT_rules()
 			rule.type = 3;
 			rule.src_tree_frag.push_back(node);
 			rule.src_node_status.push_back(-1);
-			rule.tgt_span = tgt_span;
+			rule.tgt_spans_for_src_node.push_back(tgt_span);
 			rule.tgt_word_status.resize(tspair->tgt_sen_len,-1);
 			rule.variable_num = 0;
 			for (const auto child : node->children) 							 // 对当前节点的每个孩子节点进行扩展，直到遇到源端span以外的边界节点或单词节点
@@ -172,7 +200,7 @@ void RuleExtractor::extract_SPMT_rules()
 				continue;
 			int lbound = min(tgt_span.first,node->tgt_span.first);               // 当前规则的左右边界
 			int rbound = max(tgt_span.second,node->tgt_span.second);
-			rule.tgt_span = make_pair(lbound,rbound);
+			rule.tgt_spans_for_src_node.at(0) = make_pair(lbound,rbound);
 			for (int tgt_idx=lbound;tgt_idx<=rbound;tgt_idx++)
 			{
 				if (rule.tgt_word_status.at(tgt_idx) == -1 && (tgt_idx<tgt_span.first || tgt_idx>tgt_span.second))
@@ -318,8 +346,8 @@ void RuleExtractor::expand_rule(Rule &rule,vector<Rule>* composed_rules)
 				else
 					new_rule.src_node_status.push_back(status);					//内部节点和单词节点状态保持不变
 			}
-			new_rule.tgt_span.first = min(rule.tgt_span.first,min_rule.tgt_span.first);
-			new_rule.tgt_span.second = max(rule.tgt_span.second,min_rule.tgt_span.second);  //TODO
+			//new_rule.tgt_span.first = min(rule.tgt_span.first,min_rule.tgt_span.first);
+			//new_rule.tgt_span.second = max(rule.tgt_span.second,min_rule.tgt_span.second);  //TODO
 		}
 	}
 }

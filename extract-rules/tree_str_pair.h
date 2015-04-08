@@ -10,7 +10,7 @@ struct Rule
 {
 	vector<SyntaxNode*> src_tree_frag;				//按照先序顺序记录规则源端句法树片段中的节点
 	vector<int> src_node_status;					//记录规则源端每个节点的状态，i表示第i个变量节点，-1表示根节点，-2表示内部节点，-3表示单词节点
-	vector<pair<int,int> > tgt_spans_for_src_node;  //记录规则源端每个节点在目标段的span
+	vector<pair<int,int> > tgt_spans_for_src_node;  //记录规则源端每个节点在目标端的span
 	pair<int,int> tgt_span;							//记录规则目标端的span
 	vector<int> tgt_word_status;					//记录目标端span中每个单词的状态，i表示被源端第i个变量替换，-1表示没被替换，-2表示被跳过的未对齐的词(-2状态用于SPMT规则)
 	int variable_num;								//规则中变量的个数
@@ -74,8 +74,6 @@ class TreeStrPair
 		vector<pair<int,int> > tgt_idx_to_src_span;   						// 记录每个目标语言单词对应的源端span
 		vector<vector<int> > src_idx_to_tgt_idx;     					    // 记录每个源语言单词对应的目标端单词位置
 		vector<vector<int> > tgt_idx_to_src_idx;      						// 记录每个目标语言单词对应的源端单词位置
-		vector<vector<SyntaxNode*> > tgt_span_lbound_to_frontier_nodes;     // 将tgt_span左边界相同的边界节点放到一起，处理目标语言未对齐的单词用
-		vector<vector<SyntaxNode*> > tgt_span_rbound_to_frontier_nodes;     // 将tgt_span右边界相同的边界节点放到一起，处理目标语言未对齐的单词用
 		vector<string> tgt_words;
 		int tgt_sen_len;
 };
