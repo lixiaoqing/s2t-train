@@ -24,6 +24,7 @@ class RuleExtractor
 		bool check_alignment_for_src_span(pair<int,int> src_span,pair<int,int> tgt_span);
 		void extract_compose_rules(SyntaxNode* node);
 		void expand_rule(Rule &rule,vector<Rule>* composed_rules);
+		void generate_new_rule(Rule &rule,int node_idx,int variable_idx,Rule &sub_rule,vector<Rule>* composed_rules);
 
 	private:
 		TreeStrPair *tspair;

@@ -9,7 +9,8 @@ void RuleExtractor::extract_rules()
 {
 	extract_GHKM_rules(tspair->root);
 	extract_SPMT_rules();
-	tspair->dump_rule(tspair->root);
+	extract_compose_rules(tspair->root);
+	tspair->dump_all_rules(tspair->root);
 }
 
 /**************************************************************************************
@@ -26,7 +27,7 @@ void RuleExtractor::extract_GHKM_rules(SyntaxNode* node)
 		rule.type = 1;
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-1);
-		rule.tgt_spans_for_src_node.push_back(node->tgt_span);
+		rule.src_node_span.push_back(node->tgt_span);
 		rule.tgt_word_status.resize(tspair->tgt_sen_len,-1);
 		rule.variable_num = 0;
 		for (const auto child : node->children) 							// 对当前节点的每个孩子节点进行扩展，直到遇到边界节点或单词节点为止
@@ -54,13 +55,13 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-3);
-		rule.tgt_spans_for_src_node.push_back(node->tgt_span);
+		rule.src_node_span.push_back(node->tgt_span);
 	}
 	else if (node->type == 1)										                    //边界节点
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(rule.variable_num);
-		rule.tgt_spans_for_src_node.push_back(node->tgt_span);
+		rule.src_node_span.push_back(node->tgt_span);
 		for (int tgt_idx=node->tgt_span.first;tgt_idx<=node->tgt_span.second;tgt_idx++)
 		{
 			rule.tgt_word_status.at(tgt_idx) = rule.variable_num;						//根据当前节点的tgt_span更新目标端单词的状态
@@ -71,7 +72,7 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-2);
-		rule.tgt_spans_for_src_node.push_back(make_pair(-1,-1));
+		rule.src_node_span.push_back(make_pair(-1,-1));
 		for (const auto child : node->children)
 		{
 			find_frontier_frag(child,rule);
@@ -106,12 +107,15 @@ void RuleExtractor::attach_unaligned_words(SyntaxNode* node)
 				{
 					Rule rule = node->rules.front();
 					rule.type = 2;
-					rule.tgt_spans_for_src_node.at(0).second = tgt_idx;							//更新规则根节点的目标端span
-					rule.tgt_spans_for_src_node.at(j).second = tgt_idx;							//更新变量节点的在目标端的控制范围
+					if (rule.src_node_span.at(0).second < tgt_idx)
+					{
+						rule.src_node_span.at(0).second = tgt_idx;								//更新规则根节点的目标端span
+					}
+					rule.src_node_span.at(j).second = tgt_idx;									//更新变量节点的在目标端的控制范围
 					int variable_idx = node->rules.front().src_node_status.at(j);
 					if (variable_idx >= 0)
 					{
-						for (int k=rule.tgt_spans_for_src_node.at(j).first;k<=rule.tgt_spans_for_src_node.at(j).second;k++)
+						for (int k=rule.src_node_span.at(j).first;k<=rule.src_node_span.at(j).second;k++)
 						{
 							rule.tgt_word_status.at(k) = variable_idx;
 						}
@@ -135,12 +139,15 @@ void RuleExtractor::attach_unaligned_words(SyntaxNode* node)
 				{
 					Rule rule = node->rules.front();
 					rule.type = 2;
-					rule.tgt_spans_for_src_node.at(0).first = tgt_idx;							//更新规则根节点的目标端span
-					rule.tgt_spans_for_src_node.at(j).first = tgt_idx;							//更新变量节点的在目标端的控制范围
+					if (rule.src_node_span.at(0).first > tgt_idx)
+					{
+						rule.src_node_span.at(0).first = tgt_idx;								//更新规则根节点的目标端span
+					}
+					rule.src_node_span.at(j).first = tgt_idx;									//更新变量节点的在目标端的控制范围
 					int variable_idx = node->rules.front().src_node_status.at(j);
 					if (variable_idx >= 0)
 					{
-						for (int k=rule.tgt_spans_for_src_node.at(j).first;k<=rule.tgt_spans_for_src_node.at(j).second;k++)
+						for (int k=rule.src_node_span.at(j).first;k<=rule.src_node_span.at(j).second;k++)
 						{
 							rule.tgt_word_status.at(k) = variable_idx;
 						}
@@ -187,7 +194,7 @@ void RuleExtractor::extract_SPMT_rules()
 			rule.type = 3;
 			rule.src_tree_frag.push_back(node);
 			rule.src_node_status.push_back(-1);
-			rule.tgt_spans_for_src_node.push_back(tgt_span);
+			rule.src_node_span.push_back(tgt_span);
 			rule.tgt_word_status.resize(tspair->tgt_sen_len,-1);
 			rule.variable_num = 0;
 			for (const auto child : node->children) 							 // 对当前节点的每个孩子节点进行扩展，直到遇到源端span以外的边界节点或单词节点
@@ -200,7 +207,7 @@ void RuleExtractor::extract_SPMT_rules()
 				continue;
 			int lbound = min(tgt_span.first,node->tgt_span.first);               // 当前规则的左右边界
 			int rbound = max(tgt_span.second,node->tgt_span.second);
-			rule.tgt_spans_for_src_node.at(0) = make_pair(lbound,rbound);
+			rule.src_node_span.at(0) = make_pair(lbound,rbound);
 			for (int tgt_idx=lbound;tgt_idx<=rbound;tgt_idx++)
 			{
 				if (rule.tgt_word_status.at(tgt_idx) == -1 && (tgt_idx<tgt_span.first || tgt_idx>tgt_span.second))
@@ -226,11 +233,13 @@ bool RuleExtractor::find_syntax_phrase_frag(SyntaxNode* node,Rule &rule,pair<int
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-3);
+		rule.src_node_span.push_back(node->tgt_span);
 	}
-	else if (node->type == 1 && (node->src_span.first > src_span.second || node->src_span.second < src_span.first))      //超过了源端span的边界节点
+	else if (node->type == 1 && (node->src_span.first > src_span.second || node->src_span.second < src_span.first))   //超过了源端span的边界节点
 	{
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(rule.variable_num);
+		rule.src_node_span.push_back(node->tgt_span);
 		for (int tgt_idx=node->tgt_span.first;tgt_idx<=node->tgt_span.second;tgt_idx++)
 		{
 			rule.tgt_word_status.at(tgt_idx) = rule.variable_num;						//根据当前节点的tgt_span更新目标端单词的状态
@@ -239,10 +248,11 @@ bool RuleExtractor::find_syntax_phrase_frag(SyntaxNode* node,Rule &rule,pair<int
 	}
 	else 																				//非边界节点或源端span内的边界节点
 	{
-		if (node->type == 2 && (node->src_span.first > src_span.second || node->src_span.second < src_span.first))       //超过了源端span的非边界节点
+		if (node->type == 2 && (node->src_span.first > src_span.second || node->src_span.second < src_span.first))  //超过了源端span的非边界节点
 			return false;       //TODO 或许应该继续扩展
 		rule.src_tree_frag.push_back(node);
 		rule.src_node_status.push_back(-2);
+		rule.src_node_span.push_back(node->tgt_span);
 		for (const auto child : node->children)
 		{
 			bool flag = find_syntax_phrase_frag(child,rule,src_span);
@@ -294,62 +304,119 @@ bool RuleExtractor::check_alignment_for_src_span(pair<int,int> src_span,pair<int
 ************************************************************************************* */
 void RuleExtractor::extract_compose_rules(SyntaxNode* node)
 {
+	if (node->type != 1)
+		return;
 	vector<Rule>* rules_to_be_composed = &node->rules;
 	vector<Rule>* composed_rules = new vector<Rule>;
-	for (int compose_num=1;compose_num<MAX_RULE_SIZE;compose_num++)
+	for (int compose_num=1;compose_num<MAX_RULE_SIZE;compose_num++)	 //一个组合规则最多由MAX_RULE_SIZE个最小规则(或者最多一个SPMT规则)组合而成
 	{
-		for (auto rule : *rules_to_be_composed)
+		for (auto &rule : *rules_to_be_composed)
 		{
-			expand_rule(rule,composed_rules);
+			expand_rule(rule,composed_rules);						 //对待扩展规则进行扩展
 		}
+		if (composed_rules->empty())								 //待扩展规则不包含变量节点，无法继续扩展
+			break;
 		node->rules.insert(node->rules.end(),composed_rules->begin(),composed_rules->end());
-		rules_to_be_composed = composed_rules;
+		rules_to_be_composed = composed_rules;			//将新生成的规则作为下一次的待扩展规则(e.g. 大小为3的规则都是由大小为2的规则扩展而来)
+		composed_rules = new vector<Rule>;
 	}
-	for (const auto child : node->children)
+	for (auto child : node->children)
 	{
 		extract_compose_rules(child);
 	}
 }
 
+/**************************************************************************************
+ 1. 函数功能: 对当前规则进行扩展，将生成的规则放入composed_rules中
+ 2. 入口参数: 当前规则的引用
+ 3. 出口参数: 存放新生成规则的composed_rules
+ 4. 算法简介: 对当前规则的每一个变量节点，使用该节点的最小规则对其进行替换
+************************************************************************************* */
 void RuleExtractor::expand_rule(Rule &rule,vector<Rule>* composed_rules)
 {
-	int variable_idx = -1;												//表示当前节点是规则中第几个变量节点
-	for (int node_idx=0;node_idx<rule.src_tree_frag.size();node_idx++)
+	int variable_idx = -1;													//表示当前节点是规则中第几个变量节点
+	for (int node_idx=0;node_idx<rule.src_tree_frag.size();node_idx++)		//遍历规则源端的每个节点
 	{
-		if (rule.src_node_status.at(node_idx) >= 0)							//遇到变量节点，进行扩展生成新规则
+		if (rule.src_node_status.at(node_idx) < 0)							//跳过非变量节点，只对变量节点进行扩展生成新规则
+			continue;
+		variable_idx++;
+		for (auto &sub_rule : rule.src_tree_frag.at(node_idx)->rules)		//遍历该变量节点的所有规则
 		{
-			variable_idx++;
-			Rule &min_rule = rule.src_tree_frag.at(node_idx)->rules.at(0);//TODO 每个变量节点只有唯一一个最小规则,可考虑扩展含未对齐词的最小规则
-			assert(min_rule.type == 1);    //TODO
-			Rule new_rule;
-			new_rule.variable_num = rule.variable_num + min_rule.variable_num - 1;
-			new_rule.type = 4;
-			new_rule.size = rule.size + 1;
-			new_rule.src_tree_frag.assign(rule.src_tree_frag.begin(),rule.src_tree_frag.begin()+node_idx);
-			new_rule.src_tree_frag.insert(new_rule.src_tree_frag.end(),min_rule.src_tree_frag.begin(),min_rule.src_tree_frag.end());
-			new_rule.src_tree_frag.insert(new_rule.src_tree_frag.end(),rule.src_tree_frag.begin()+node_idx+1,rule.src_tree_frag.end());
-			new_rule.src_node_status.assign(rule.src_node_status.begin(),rule.src_node_status.begin()+node_idx);
-			for (auto status : min_rule.src_node_status)
-			{
-				if (status == -1)
-					new_rule.src_node_status.push_back(-2);						//最小规则的根节点变成组合规则的内部节点
-				else if (status >= 0)
-					new_rule.src_node_status.push_back(status+variable_idx);	//最小规则的变量节点需更新变量编号
-				else
-					new_rule.src_node_status.push_back(status);					//最小规则的内部节点和单词节点状态保持不变
-			}
-			for (int i=node_idx+1;i<rule.src_node_status.size();i++)
-			{
-				int status = rule.src_node_status.at(i);
-				if (status >= 0)
-					new_rule.src_node_status.push_back(status+min_rule.size-1);	//后面的的变量节点需更新变量编号
-				else
-					new_rule.src_node_status.push_back(status);					//内部节点和单词节点状态保持不变
-			}
-			//new_rule.tgt_span.first = min(rule.tgt_span.first,min_rule.tgt_span.first);
-			//new_rule.tgt_span.second = max(rule.tgt_span.second,min_rule.tgt_span.second);  //TODO
+			if (sub_rule.type > 2)											//跳过SPMT规则和组合规则，只使用最小规则来替换当前变量节点
+				continue;
+			if (sub_rule.src_node_span.front() != rule.src_node_span.at(node_idx))
+				continue;													//如果最小规则的目标端span与变量节点的不同，则跳过
+			generate_new_rule(rule,node_idx,variable_idx,sub_rule,composed_rules);
 		}
 	}
+}
+
+/**************************************************************************************
+ 1. 函数功能: 根据当前规则和变量节点的规则生成新规则
+ 2. 入口参数: 当前规则，变量节点的规则，变量节点在所有节点中的位置，变量节点在所有变量
+ 			  节点中的位置
+ 3. 出口参数: 存放新生成规则的composed_rules
+ 4. 算法简介: 见注释
+************************************************************************************* */
+void RuleExtractor::generate_new_rule(Rule &rule,int node_idx,int variable_idx,Rule &sub_rule,vector<Rule>* composed_rules)
+{
+	Rule new_rule;
+	new_rule.variable_num = rule.variable_num + sub_rule.variable_num - 1;
+	new_rule.type = 4;
+	new_rule.size = rule.size + 1;
+	//生成新规则的源端句法节点序列
+	new_rule.src_tree_frag.assign(rule.src_tree_frag.begin(),rule.src_tree_frag.begin()+node_idx);
+	new_rule.src_tree_frag.insert(new_rule.src_tree_frag.end(),sub_rule.src_tree_frag.begin(),sub_rule.src_tree_frag.end());
+	new_rule.src_tree_frag.insert(new_rule.src_tree_frag.end(),rule.src_tree_frag.begin()+node_idx+1,rule.src_tree_frag.end());
+	//生成新规则源端每个节点对应的目标端span
+	new_rule.src_node_span.assign(rule.src_node_span.begin(),rule.src_node_span.begin()+node_idx);
+	new_rule.src_node_span.insert(new_rule.src_node_span.end(),sub_rule.src_node_span.begin(),sub_rule.src_node_span.end());
+	new_rule.src_node_span.insert(new_rule.src_node_span.end(),rule.src_node_span.begin()+node_idx+1,rule.src_node_span.end());
+	//生成新规则源端每个节点的状态信息（根节点，内部节点，单词节点或者第i个变量节点）
+	new_rule.src_node_status.assign(rule.src_node_status.begin(),rule.src_node_status.begin()+node_idx);
+	//生成新规则目标端每个单词的状态信息（没被替换或者被第i个源端变量替换）
+	new_rule.tgt_word_status = rule.tgt_word_status;
+	for (int i=0;i<sub_rule.src_node_status.size();i++)
+	{
+		int status = sub_rule.src_node_status.at(i);
+		if (status == -1)
+		{
+			new_rule.src_node_status.push_back(-2);						//最小规则的根节点变成组合规则的内部节点
+			for (int j=new_rule.src_node_span.at(node_idx+i).first;j<=new_rule.src_node_span.at(node_idx+i).second;j++)
+			{
+				new_rule.tgt_word_status.at(j) = -1;					//将该节点控制的目标端的每个单词的状态置为-1
+			}
+		}
+		else if (status >= 0)
+		{
+			new_rule.src_node_status.push_back(status+variable_idx);	//最小规则的变量节点需更新变量编号
+			for (int j=sub_rule.src_node_span.at(i).first;j<=sub_rule.src_node_span.at(i).second;j++)
+			{
+				new_rule.tgt_word_status.at(j) = status+variable_idx;	//更新该变量控制的目标端的每个单词的状态
+			}
+		}
+		else
+		{
+			new_rule.src_node_status.push_back(status);					//最小规则的内部节点和单词节点状态保持不变
+		}
+	}
+	for (int i=node_idx+1;i<rule.src_node_status.size();i++)
+	{
+		int status = rule.src_node_status.at(i);
+		if (status >= 0)
+		{
+			new_rule.src_node_status.push_back(status+sub_rule.variable_num-1);		//后面的的变量节点需更新变量编号
+			for (int j=rule.src_node_span.at(i).first;j<=rule.src_node_span.at(i).second;j++)
+			{
+				new_rule.tgt_word_status.at(j) = status+sub_rule.variable_num-1;	//更新该变量控制的目标端的每个单词的状态
+			}
+		}
+		else
+		{
+			new_rule.src_node_status.push_back(status);					//内部节点和单词节点状态保持不变
+		}
+	}
+	composed_rules->push_back(new_rule);
 }
 
 int main()

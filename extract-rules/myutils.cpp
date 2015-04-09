@@ -31,3 +31,10 @@ void TrimLine(string &line)
 	line.erase(0,line.find_first_not_of(" \t\r\n"));
 	line.erase(line.find_last_not_of(" \t\r\n")+1);
 }
+
+void print_vector(vector<int> &v)
+{
+	for (auto e : v)
+		cout<<e<<" ";
+	cout<<endl;
+}
