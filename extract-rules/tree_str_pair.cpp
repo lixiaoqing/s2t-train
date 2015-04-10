@@ -180,6 +180,10 @@ void TreeStrPair::dump_all_rules(SyntaxNode* node)
 	{
 		dump_rule(rule);
 	}
+	for (auto str_rule : node->str_rules)
+	{
+		cout<<str_rule<<endl;
+	}
 	for (const auto &child : node->children)
 	{
 		dump_all_rules(child);
@@ -217,7 +221,7 @@ void TreeStrPair::dump_rule(Rule &rule)
 		node = node->father;
 	}
 	string tgt_side;
-	int tgt_idx=rule.src_node_span.front().first; 							//遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
+	int tgt_idx=rule.src_node_span.front().first; 									//遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
 	while (tgt_idx<=rule.src_node_span.front().second)
 	{
 		if (rule.tgt_word_status.at(tgt_idx) == -1)
@@ -235,6 +239,7 @@ void TreeStrPair::dump_rule(Rule &rule)
 			}
 		}
 	}
-	cout<<src_side<<" ||| "<<tgt_side<<" ||| "<<rule.type<<endl;
+	//cout<<src_side<<" ||| "<<tgt_side<<" ||| "<<rule.type<<" ||| "<<rule.size<<endl;
+	node->str_rules.insert(src_side+" ||| "+tgt_side);
 }
 

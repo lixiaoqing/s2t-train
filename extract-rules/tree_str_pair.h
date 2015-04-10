@@ -35,6 +35,7 @@ struct SyntaxNode
 	pair<int,int> tgt_span;                         // 该节点对应的目标端span
 	int type;                                       // 节点类型，0：单词节点，1：边界节点，2：非边界节点
 	vector<Rule> rules;								// 该节点能抽取的所有规则
+	set<string> str_rules;							// 该节点所有规则的字符串形式
 	
 	SyntaxNode ()
 	{
