@@ -18,6 +18,7 @@ class RuleExtractor
 		void extract_GHKM_rules(SyntaxNode* node);
 		void find_frontier_frag(SyntaxNode* node,Rule &rule);
 		void attach_unaligned_words(SyntaxNode* node);
+		void cal_tgt_word_num(Rule &rule);
 		void extract_SPMT_rules();
 		bool find_syntax_phrase_frag(SyntaxNode* node,Rule &rule,pair<int,int> src_span);
 		pair<int,int> cal_src_span_for_tgt_span(pair<int,int> tgt_span);

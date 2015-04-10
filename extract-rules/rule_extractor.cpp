@@ -34,7 +34,11 @@ void RuleExtractor::extract_GHKM_rules(SyntaxNode* node)
 		{
 			find_frontier_frag(child,rule);
 		}
-		node->rules.push_back(rule);
+		cal_tgt_word_num(rule);
+		if (rule.tgt_word_num <= MAX_RHS_WORD_NUM && rule.src_tree_frag.size() <= MAX_LHS_NODE_NUM)
+		{
+			node->rules.push_back(rule);
+		}
 		attach_unaligned_words(node);
 	}
 	for (const auto child : node->children)
@@ -80,6 +84,17 @@ void RuleExtractor::find_frontier_frag(SyntaxNode* node,Rule &rule)
 	}
 }
 
+void RuleExtractor::cal_tgt_word_num(Rule &rule)
+{
+	for (int i=rule.src_node_span.front().first;i<rule.src_node_span.front().second;i++)
+	{
+		if (rule.tgt_word_status.at(i) == -1)
+		{
+			rule.tgt_word_num++;
+		}
+	}
+}
+
 /**************************************************************************************
  1. 函数功能: 将目标端未对齐的单词向左（右）依附到最小规则上，形成新的规则
  2. 入口参数: 无
@@ -120,7 +135,11 @@ void RuleExtractor::attach_unaligned_words(SyntaxNode* node)
 							rule.tgt_word_status.at(k) = variable_idx;
 						}
 					}
-					node->rules.push_back(rule);
+					cal_tgt_word_num(rule);
+					if (rule.tgt_word_num <= MAX_RHS_WORD_NUM && rule.src_tree_frag.size() <= MAX_LHS_NODE_NUM)
+					{
+						node->rules.push_back(rule);
+					}
 				}
 			}
 		}
@@ -152,7 +171,11 @@ void RuleExtractor::attach_unaligned_words(SyntaxNode* node)
 							rule.tgt_word_status.at(k) = variable_idx;
 						}
 					}
-					node->rules.push_back(rule);
+					cal_tgt_word_num(rule);
+					if (rule.tgt_word_num <= MAX_RHS_WORD_NUM && rule.src_tree_frag.size() <= MAX_LHS_NODE_NUM)
+					{
+						node->rules.push_back(rule);
+					}
 				}
 			}
 		}
@@ -170,7 +193,7 @@ void RuleExtractor::attach_unaligned_words(SyntaxNode* node)
 ************************************************************************************* */
 void RuleExtractor::extract_SPMT_rules()
 {
-	for (int len=0;len<tspair->tgt_sen_len && len<MAX_PHRASE_LEN;len++)			  //遍历目标端所有的短语
+	for (int len=0;len<tspair->tgt_sen_len && len<MAX_SPMT_PHRASE_LEN;len++)	  //遍历目标端所有的短语
 	{
 		for (int beg=0;beg+len<tspair->tgt_sen_len;beg++)
 		{
@@ -215,7 +238,11 @@ void RuleExtractor::extract_SPMT_rules()
 					rule.tgt_word_status.at(tgt_idx) = -2;						 //跳过目标端span以外的未对齐的词
 				}
 			}
-			node->rules.push_back(rule);
+			cal_tgt_word_num(rule);
+			if (rule.tgt_word_num <= MAX_RHS_WORD_NUM && rule.src_tree_frag.size() <= MAX_LHS_NODE_NUM)
+			{
+				node->rules.push_back(rule);
+			}
 		}
 	}
 }
@@ -417,7 +444,11 @@ void RuleExtractor::generate_new_rule(Rule &rule,int node_idx,int variable_idx,R
 			new_rule.src_node_status.push_back(status);					//内部节点和单词节点状态保持不变
 		}
 	}
-	composed_rules->push_back(new_rule);
+	cal_tgt_word_num(new_rule);
+	if (new_rule.tgt_word_num <= MAX_RHS_WORD_NUM && new_rule.src_tree_frag.size() <= MAX_LHS_NODE_NUM)
+	{
+		composed_rules->push_back(new_rule);
+	}
 }
 
 int main()

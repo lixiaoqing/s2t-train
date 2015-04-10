@@ -17,11 +17,13 @@ struct Rule
 	int variable_num;							//规则中变量的个数
 	int type;                                   //规则类型，1为最小规则，2为扩展了未对齐单词的最小规则，3为SMPT规则，4为组合规则
 	int size;                            	    //规则大小，表示规则由几个最小规则组合而成
+	int tgt_word_num;
 	Rule ()
 	{
 		variable_num = 0;
 		type = 1;
 		size = 1;
+		tgt_word_num = 0;
 	}
 };
 

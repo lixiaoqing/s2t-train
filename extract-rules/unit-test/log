@@ -1,0 +1,37 @@
+NP ( NP ( NNS ( astronauts ) ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( NNP ( France ) ) ) ) )  ||| 来自 法国 的 宇航 员 
+NP ( NP ( NNS ( astronauts ) ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x0:NP ) ) )  ||| 来自 x0 宇航 员 
+NP ( NP ( NNS ( astronauts ) ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x0:NP ) ) )  ||| 来自 x0 的 宇航 员 
+NP ( NP ( NNS ( astronauts ) ) ) ( x0:VP )  ||| x0 宇航 员 
+NP ( NP ( NNS ( astronauts ) ) ) ( x0:VP )  ||| x0 的 宇航 员 
+NP ( NP ( x0:NNS ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( x1:NNP ) ) ) )  ||| 来自 x1 x0 
+NP ( NP ( x0:NNS ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( x1:NNP ) ) ) )  ||| 来自 x1 的 x0 
+NP ( NP ( x0:NNS ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x1:NP ) ) )  ||| 来自 x1 x0 
+NP ( NP ( x0:NNS ) ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x1:NP ) ) )  ||| 来自 x1 的 x0 
+NP ( NP ( x0:NNS ) ) ( x1:VP )  ||| x1 x0 
+NP ( NP ( x0:NNS ) ) ( x1:VP )  ||| x1 的 x0 
+NP ( x0:NP ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( NNP ( France ) ) ) ) )  ||| 来自 法国 x0 
+NP ( x0:NP ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( NNP ( France ) ) ) ) )  ||| 来自 法国 的 x0 
+NP ( x0:NP ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( x1:NNP ) ) ) )  ||| 来自 x1 x0 
+NP ( x0:NP ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( x1:NNP ) ) ) )  ||| 来自 x1 的 x0 
+NP ( x0:NP ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x1:NP ) ) )  ||| 来自 x1 x0 
+NP ( x0:NP ) ( VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x1:NP ) ) )  ||| 来自 x1 的 x0 
+NP ( x0:NP ) ( x1:VP )  ||| x1 x0 
+NP ( x0:NP ) ( x1:VP )  ||| x1 的 x0 
+NP ( NNS ( astronauts ) )  ||| 宇航 员 
+NP ( NNS ( astronauts ) )  ||| 的 宇航 员 
+NP ( x0:NNS )  ||| x0 
+NP ( x0:NNS )  ||| 的 x0 
+NNS ( astronauts )  ||| 宇航 员 
+NNS ( astronauts )  ||| 的 宇航 员 
+VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( NNP ( France ) ) ) )  ||| 来自 法国 
+VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( NNP ( France ) ) ) )  ||| 来自 法国 的 
+VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( x0:NNP ) ) )  ||| 来自 x0 
+VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( NP ( x0:NNP ) ) )  ||| 来自 x0 的 
+VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x0:NP ) )  ||| 来自 x0 
+VP ( VBG ( coming ) ) ( PP ( IN ( from ) ) ( x0:NP ) )  ||| 来自 x0 的 
+NP ( NNP ( France ) )  ||| 法国 
+NP ( NNP ( France ) )  ||| 法国 的 
+NP ( x0:NNP )  ||| x0 
+NP ( x0:NNP )  ||| x0 的 
+NNP ( France )  ||| 法国 
+NNP ( France )  ||| 法国 的 
