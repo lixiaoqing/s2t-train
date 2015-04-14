@@ -39,7 +39,10 @@ void RuleExtractor::extract_GHKM_rules(SyntaxNode* node)
 		{
 			node->rules.push_back(rule);
 		}
-		attach_unaligned_words(node);
+		if (!node->rules.empty())
+		{
+			attach_unaligned_words(node);
+		}
 	}
 	for (const auto child : node->children)
 	{

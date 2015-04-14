@@ -14,21 +14,22 @@ void load_lex_trans_table(map<string,double> &lex_trans_table,string lex_trans_f
     }
 };
 
-int main()
+int main(int argc, char* argv[])
 {
-	ifstream ft("en.parse");
-	ifstream fs("ch");
-	ifstream fa("al");
+	ifstream ft(argv[1]);
+	ifstream fs(argv[2]);
+	ifstream fa(argv[3]);
 	map<string,double> lex_s2t;
 	map<string,double> lex_t2s;
-    load_lex_trans_table(lex_s2t,"lex.e2f");
-    load_lex_trans_table(lex_t2s,"lex.f2e");
+    load_lex_trans_table(lex_s2t,argv[4]);
+    load_lex_trans_table(lex_t2s,argv[5]);
     RuleCounter rule_counter;
 	string line_tree,line_str,line_align;
 	while(getline(ft,line_tree))
 	{
 		getline(fs,line_str);
 		getline(fa,line_align);
+		cerr<<line_str<<endl;
 		RuleExtractor rule_extractor(line_tree,line_str,line_align,&lex_s2t,&lex_t2s,&rule_counter);
 		rule_extractor.extract_rules();
 	}

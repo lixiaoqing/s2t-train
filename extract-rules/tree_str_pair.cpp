@@ -272,7 +272,11 @@ void TreeStrPair::dump_rule(Rule &rule)
             lex_weight_s2t = lex_weight_s2t*lex_weight_for_one_word;
 			tgt_idx++;
         }
-        else if (rule.tgt_word_status.at(tgt_idx) >= 0)
+		else if (rule.tgt_word_status.at(tgt_idx) == -2)
+		{
+			tgt_idx++;																//跳过SPMT规则中目标短语以外的未对齐的词
+		}
+		else
 		{
 			int variable_num = rule.tgt_word_status.at(tgt_idx);
 			tgt_side += "x"+to_string(variable_num)+" ";
@@ -282,11 +286,16 @@ void TreeStrPair::dump_rule(Rule &rule)
 			}
 		}
 	}
-    if (word_in_src_side == false)
+	if (word_in_src_side == false && word_in_tgt_side == false)
+	{
+        lex_weight_t2s = 0.0;
+        lex_weight_s2t = 0.0;
+	}
+	else if (word_in_src_side == false)
     {
         lex_weight_t2s = lex_weight_t2null;
     }
-    if (word_in_src_side == false)
+	else if (word_in_tgt_side == false)
     {
         lex_weight_s2t = lex_weight_s2null;
     }

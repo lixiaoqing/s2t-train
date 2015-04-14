@@ -2,6 +2,6 @@ set -x
 make
 mv a unit-test/ 
 cd unit-test
-./a > log
+./a en.parse ch al lex.e2f lex.f2e > log
 cat log
 cd -
