@@ -1,7 +1,10 @@
 #include "tree_str_pair.h"
 
-TreeStrPair::TreeStrPair(const string &line_tree,const string &line_str,const string &line_align)
+TreeStrPair::TreeStrPair(string &line_tree,string &line_str,string &line_align,map<string,double> *plex_s2t,map<string,double> *plex_t2s,RuleCounter *counter)
 {
+    lex_s2t = plex_s2t;
+    lex_t2s = plex_t2s;
+    rule_counter = counter;
 	load_alignment(line_align);
 	tgt_words = Split(line_str);
 	tgt_sen_len = tgt_words.size();
@@ -180,10 +183,6 @@ void TreeStrPair::dump_all_rules(SyntaxNode* node)
 	{
 		dump_rule(rule);
 	}
-	for (auto str_rule : node->str_rules)
-	{
-		cout<<str_rule<<endl;
-	}
 	for (const auto &child : node->children)
 	{
 		dump_all_rules(child);
@@ -193,9 +192,12 @@ void TreeStrPair::dump_all_rules(SyntaxNode* node)
 void TreeStrPair::dump_rule(Rule &rule)
 {
 	string src_side = rule.src_tree_frag.at(0)->label + " ";
+    double lex_weight_t2s = 1.0;
+    bool word_in_src_side = false;
+    double lex_weight_s2null = 1.0;
 	for (int i=1;i<rule.src_tree_frag.size();i++)
 	{
-		if (rule.src_tree_frag.at(i-1) != rule.src_tree_frag.at(i)->father)			//前一个节点不是是当前节点的父节点
+		if (rule.src_tree_frag.at(i-1) != rule.src_tree_frag.at(i)->father)			//前一个节点不是当前节点的父节点
 		{
 			SyntaxNode* node = rule.src_tree_frag.at(i-1);
 			while(node != rule.src_tree_frag.at(i)->father)							//沿着前一个节点往上走，直到走到当前节点的父节点
@@ -208,6 +210,27 @@ void TreeStrPair::dump_rule(Rule &rule)
 		if (rule.src_node_status.at(i) < 0)											//规则源端内部节点或者单词节点
 		{
 			src_side += rule.src_tree_frag.at(i)->label + " ";
+            if (rule.src_node_status.at(i) == -3)                                   //计算源端单词节点的词汇权重
+            {
+                word_in_src_side = true;
+                double lex_weight_for_one_word = 0;
+                string src_word = rule.src_tree_frag.at(i)->label;
+                int src_idx = rule.src_tree_frag.at(i)->src_span.first;
+                if (src_idx_to_tgt_idx.at(src_idx).empty())
+                {
+                    lex_weight_for_one_word = (*lex_t2s)[src_word+" NULL"];         //该词汇翻译对必然存在于词汇翻译表中
+                    lex_weight_s2null *= (*lex_s2t)["NULL "+src_word];
+                }
+                else
+                {
+                    for (int tgt_idx : src_idx_to_tgt_idx.at(src_idx))
+                    {
+                        lex_weight_for_one_word += (*lex_t2s)[src_word+" "+tgt_words.at(tgt_idx)];
+                    }
+                    lex_weight_for_one_word /= src_idx_to_tgt_idx.at(src_idx).size();
+                }
+                lex_weight_t2s *= lex_weight_for_one_word;
+            }
 		}
 		else 																		//规则源端变量节点
 		{
@@ -221,15 +244,35 @@ void TreeStrPair::dump_rule(Rule &rule)
 		node = node->father;
 	}
 	string tgt_side;
+    double lex_weight_s2t = 1.0;
+    bool word_in_tgt_side = false;
+    double lex_weight_t2null = 1.0;
 	int tgt_idx=rule.src_node_span.front().first; 									//遍历当前规则tgt_span的每个单词，根据tgt_word_status生成规则目标端
 	while (tgt_idx<=rule.src_node_span.front().second)
 	{
 		if (rule.tgt_word_status.at(tgt_idx) == -1)
 		{
 			tgt_side += tgt_words.at(tgt_idx)+" ";
+            word_in_tgt_side = true;
+            double lex_weight_for_one_word = 0;                                     //计算目标端单词节点的词汇权重
+            string tgt_word = tgt_words.at(tgt_idx);
+            if (tgt_idx_to_src_idx.at(tgt_idx).empty())
+            {
+                lex_weight_for_one_word = (*lex_s2t)[tgt_word+" NULL"];             //该词汇翻译对必然存在于词汇翻译表中
+                lex_weight_t2null *= (*lex_t2s)["NULL "+tgt_word];
+            }
+            else
+            {
+                for (int src_idx : tgt_idx_to_src_idx.at(tgt_idx))
+                {
+                    lex_weight_for_one_word += (*lex_s2t)[tgt_word+" "+word_nodes.at(src_idx)->label];
+                }
+                lex_weight_for_one_word = lex_weight_for_one_word/tgt_idx_to_src_idx.at(tgt_idx).size();
+            }
+            lex_weight_s2t = lex_weight_s2t*lex_weight_for_one_word;
 			tgt_idx++;
-		}
-		else if (rule.tgt_word_status.at(tgt_idx) >= 0)
+        }
+        else if (rule.tgt_word_status.at(tgt_idx) >= 0)
 		{
 			int variable_num = rule.tgt_word_status.at(tgt_idx);
 			tgt_side += "x"+to_string(variable_num)+" ";
@@ -239,7 +282,14 @@ void TreeStrPair::dump_rule(Rule &rule)
 			}
 		}
 	}
-	//cout<<src_side<<" ||| "<<tgt_side<<" ||| "<<rule.type<<" ||| "<<rule.size<<endl;
-	node->str_rules.insert(src_side+" ||| "+tgt_side);
+    if (word_in_src_side == false)
+    {
+        lex_weight_t2s = lex_weight_t2null;
+    }
+    if (word_in_src_side == false)
+    {
+        lex_weight_s2t = lex_weight_s2null;
+    }
+    rule_counter->update(src_side,tgt_side,lex_weight_s2t,lex_weight_t2s);
 }
 

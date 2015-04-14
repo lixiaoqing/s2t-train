@@ -1,8 +1,8 @@
 #include "rule_extractor.h"
 
-RuleExtractor::RuleExtractor(const string &line_tree,const string &line_str,const string &line_align)
+RuleExtractor::RuleExtractor(string &line_tree,string &line_str,string &line_align,map<string,double> *lex_s2t,map<string,double> *lex_t2s,RuleCounter *counter)
 {
-	tspair = new TreeStrPair(line_tree,line_str,line_align);
+	tspair = new TreeStrPair(line_tree,line_str,line_align,lex_s2t,lex_t2s,counter);
 }
 
 void RuleExtractor::extract_rules()
@@ -448,20 +448,5 @@ void RuleExtractor::generate_new_rule(Rule &rule,int node_idx,int variable_idx,R
 	if (new_rule.tgt_word_num <= MAX_RHS_WORD_NUM && new_rule.src_tree_frag.size() <= MAX_LHS_NODE_NUM)
 	{
 		composed_rules->push_back(new_rule);
-	}
-}
-
-int main()
-{
-	ifstream ft("en.parse");
-	ifstream fs("ch");
-	ifstream fa("al");
-	string line_tree,line_str,line_align;
-	while(getline(ft,line_tree))
-	{
-		getline(fs,line_str);
-		getline(fa,line_align);
-		RuleExtractor tsa_triple(line_tree,line_str,line_align);
-		tsa_triple.extract_rules();
 	}
 }

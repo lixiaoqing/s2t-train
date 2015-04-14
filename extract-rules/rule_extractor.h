@@ -3,11 +3,12 @@
 #include "stdafx.h"
 #include "myutils.h"
 #include "tree_str_pair.h"
+#include "rule_counter.h"
 
 class RuleExtractor
 {
 	public:
-		RuleExtractor(const string &line_tree,const string &line_str,const string &line_align);
+		RuleExtractor(string &line_tree,string &line_str,string &line_align,map<string,double> *lex_s2t,map<string,double> *lex_t2s,RuleCounter *counter);
 		~RuleExtractor()
 		{
 			delete tspair;

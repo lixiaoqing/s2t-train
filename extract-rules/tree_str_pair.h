@@ -2,7 +2,7 @@
 #define TREE_STR_PAIR_H
 #include "stdafx.h"
 #include "myutils.h"
-
+#include "rule_counter.h"
 
 struct SyntaxNode;
 
@@ -12,7 +12,7 @@ struct Rule
 	vector<int> src_node_status;				//记录规则源端每个节点的状态，i表示第i个变量节点，-1表示根节点，-2表示内部节点，-3表示单词节点
 	vector<pair<int,int> > src_node_span;  		//记录规则源端每个节点在目标端的span
 	vector<int> tgt_word_status;				//记录目标端span中每个单词的状态，i表示被源端第i个变量替换，-1表示没被替换
-												//-2表示被跳过的未对齐的词(-2状态用于SPMT规则)
+												//-2表示被跳过的未对齐的词(-2状态用于SPMT规则)，为了方便，该向量长度为目标端句子长度
 
 	int variable_num;							//规则中变量的个数
 	int type;                                   //规则类型，1为最小规则，2为扩展了未对齐单词的最小规则，3为SMPT规则，4为组合规则
@@ -58,7 +58,7 @@ struct SyntaxNode
 class TreeStrPair
 {
 	public:
-		TreeStrPair(const string &line_tree,const string &line_str,const string &line_align);
+		TreeStrPair(string &line_tree,string &line_str,string &line_align,map<string,double> *plex_s2t,map<string,double> *plex_t2s,RuleCounter *counter);
 		~TreeStrPair()
 		{
 			delete root;
@@ -72,14 +72,17 @@ class TreeStrPair
 		void check_frontier_for_nodes_in_subtree(SyntaxNode* node);
 
 	public:
+        RuleCounter *rule_counter;
 		SyntaxNode* root;
-		vector<SyntaxNode*> word_nodes;
+        vector<SyntaxNode*> word_nodes;
 		vector<pair<int,int> > src_idx_to_tgt_span;   						// 记录每个源语言单词对应的目标端span
 		vector<pair<int,int> > tgt_idx_to_src_span;   						// 记录每个目标语言单词对应的源端span
 		vector<vector<int> > src_idx_to_tgt_idx;     					    // 记录每个源语言单词对应的目标端单词位置
 		vector<vector<int> > tgt_idx_to_src_idx;      						// 记录每个目标语言单词对应的源端单词位置
 		vector<string> tgt_words;
 		int tgt_sen_len;
+        map<string,double> *lex_s2t;
+        map<string,double> *lex_t2s;
 };
 
 #endif
