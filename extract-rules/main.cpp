@@ -29,7 +29,7 @@ int main(int argc, char* argv[])
 	{
 		getline(fs,line_str);
 		getline(fa,line_align);
-		cerr<<line_str<<endl;
+		//cerr<<line_str<<endl;
 		RuleExtractor rule_extractor(line_tree,line_str,line_align,&lex_s2t,&lex_t2s,&rule_counter);
 		rule_extractor.extract_rules();
 	}

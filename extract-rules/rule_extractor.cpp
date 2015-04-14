@@ -338,6 +338,7 @@ void RuleExtractor::extract_compose_rules(SyntaxNode* node)
 	{
 		vector<Rule>* rules_to_be_composed = &node->rules;
 		vector<Rule>* composed_rules = new vector<Rule>;
+		vector<vector<Rule>* > rules_to_be_deleted = {composed_rules};
 		for (int compose_num=1;compose_num<MAX_RULE_SIZE;compose_num++)	 //一个组合规则最多由MAX_RULE_SIZE个最小规则(或者最多一个SPMT规则)组合而成
 		{
 			for (auto &rule : *rules_to_be_composed)
@@ -347,8 +348,13 @@ void RuleExtractor::extract_compose_rules(SyntaxNode* node)
 			if (composed_rules->empty())								 //待扩展规则不包含变量节点，无法继续扩展
 				break;
 			node->rules.insert(node->rules.end(),composed_rules->begin(),composed_rules->end());
-			rules_to_be_composed = composed_rules;			//将新生成的规则作为下一次的待扩展规则(e.g. 大小为3的规则都是由大小为2的规则扩展而来)
+			rules_to_be_composed = composed_rules;						 //将新生成的规则作为下一次的待扩展规则
 			composed_rules = new vector<Rule>;
+			rules_to_be_deleted.push_back(composed_rules);
+		}
+		for (auto p_rules : rules_to_be_deleted)
+		{
+			delete p_rules;												 //删除所有扩张的规则，否则会内存泄露
 		}
 	}
 	for (auto child : node->children)
