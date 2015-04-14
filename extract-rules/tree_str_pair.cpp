@@ -299,6 +299,12 @@ void TreeStrPair::dump_rule(Rule &rule)
     {
         lex_weight_s2t = lex_weight_s2null;
     }
-    rule_counter->update(src_side,tgt_side,lex_weight_s2t,lex_weight_t2s);
+	string str_rule = src_side + " ||| " + tgt_side;
+	auto it = rule.src_tree_frag.front()->str_rules.find(str_rule);
+	if (it == rule.src_tree_frag.front()->str_rules.end())
+	{
+		rule_counter->update(src_side,tgt_side,lex_weight_s2t,lex_weight_t2s);		//每个节点上的规则不重复
+		rule.src_tree_frag.front()->str_rules.insert(str_rule);
+	}
 }
 

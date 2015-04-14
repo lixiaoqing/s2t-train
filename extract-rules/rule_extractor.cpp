@@ -375,6 +375,10 @@ void RuleExtractor::expand_rule(Rule &rule,vector<Rule>* composed_rules)
 		{
 			if (sub_rule.type > 2)											//跳过SPMT规则和组合规则，只使用最小规则来替换当前变量节点
 				continue;
+			/*
+			if (sub_rule.type == 4)											//跳过组合规则，用最小规则和SPMT规则来替换当前变量节点
+				continue;
+			*/
 			if (sub_rule.src_node_span.front() != rule.src_node_span.at(node_idx))
 				continue;													//如果最小规则的目标端span与变量节点的不同，则跳过
 			generate_new_rule(rule,node_idx,variable_idx,sub_rule,composed_rules);
